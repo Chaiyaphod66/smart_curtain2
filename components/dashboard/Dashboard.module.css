@@ -1,0 +1,191 @@
+.dashboard {
+  display: grid;
+  min-width: 0;
+  gap: 18px;
+}
+
+.toolbar {
+  display: flex;
+  min-height: 54px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px;
+  border: 1px solid #cfd7d2;
+  border-radius: 12px;
+  background: #ffffff;
+}
+
+.dataTools,
+.scenarioControl,
+.source,
+.modeControl,
+.modeControl label {
+  display: flex;
+  align-items: center;
+}
+
+.dataTools {
+  min-width: 0;
+  gap: 14px;
+}
+
+.source {
+  flex: none;
+  gap: 7px;
+  color: #32483e;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.sourceOnline,
+.sourceMock {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.sourceOnline {
+  background: #16a66a;
+  box-shadow: 0 0 0 3px #16a66a1c;
+}
+
+.sourceMock {
+  background: #d89418;
+  box-shadow: 0 0 0 3px #d894181c;
+}
+
+.scenarioControl {
+  gap: 8px;
+  color: #68766f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.scenarioControl select {
+  min-height: 34px;
+  padding: 4px 30px 4px 10px;
+  border: 1px solid #cdd7d1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #263c32;
+  font-size: 13px;
+}
+
+.modeControl {
+  flex: none;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+}
+
+.modeControl legend {
+  float: left;
+  margin-right: 2px;
+  color: #68766f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.modeControl label {
+  min-height: 34px;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid #d4ddd7;
+  border-radius: 8px;
+  color: #32483e;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.modeControl input {
+  accent-color: #08725a;
+}
+
+.consoleGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  align-items: start;
+}
+
+.window {
+  min-width: 0;
+  overflow: visible;
+  border: 1px solid #cbd4ce;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(20, 34, 27, 0.045);
+}
+
+.window > section,
+.window > div {
+  min-height: 0;
+  margin: 0;
+  padding: 20px;
+  gap: 16px;
+  overflow: visible;
+  border: 0;
+  border-radius: 16px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.window h2 {
+  font-size: 21px;
+  line-height: 1.25;
+}
+
+.window h3 {
+  font-size: 16px;
+}
+
+.window button {
+  min-height: 38px;
+}
+
+.window input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.window select {
+  min-height: 36px;
+}
+
+@media (max-width: 1180px) {
+  .consoleGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .toolbar,
+  .dataTools {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .scenarioControl {
+    justify-content: space-between;
+  }
+
+  .scenarioControl select {
+    flex: 1;
+  }
+
+  .modeControl {
+    width: 100%;
+  }
+
+  .modeControl label {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .consoleGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .window > section,
+  .window > div {
+    padding: 17px;
+  }
+}
+

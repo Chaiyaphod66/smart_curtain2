@@ -1,0 +1,51 @@
+.panel {
+    display: grid;
+    gap: 16px;
+    margin-top: 28px;
+}
+
+.refreshButton {
+    justify-self: end;
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid #205e63;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #205e63;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.refreshButton:hover:not(:disabled) {
+    background: #eaf4f4;
+}
+
+.refreshButton:disabled {
+    border-color: #cbd5e1;
+    color: #64748b;
+    cursor: not-allowed;
+}
+
+.refreshButton:focus-visible {
+    outline: 3px solid #0284c7;
+    outline-offset: 4px;
+}
+
+.sensorGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.updatedAt {
+    color: #52636a;
+    font-size: 14px;
+    text-align: right;
+}
+
+@media (max-width: 540px) {
+    .sensorGrid {
+        grid-template-columns: 1fr;
+    }
+}

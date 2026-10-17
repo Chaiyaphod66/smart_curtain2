@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node --test lib/curtain/get-auto-target.test.mjs lib/curtain/auto-preview.test.mjs lib/curtain/auto-preset.test.mjs lib/curtain/auto-runtime.test.mjs lib/curtain/encoder-diagnostics.test.mjs"
   },
   "dependencies": {
     "next": "16.3.2",

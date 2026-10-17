@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Smart Curtain Prototype
 
-## Getting Started
+โปรเจกต์ต้นแบบสำหรับม่านหนึ่งชุด พัฒนาด้วย Next.js และ TypeScript
 
-First, run the development server:
+แผนการพัฒนาแบบละเอียดอยู่ที่ [`docs/PROJECT_PLAN.md`](docs/PROJECT_PLAN.md)
+
+## โครงสร้างที่ใช้ตอนนี้
+
+```text
+app/
+  api/sensors/route.ts       API กลางสำหรับอ่านค่าเซ็นเซอร์
+  layout.tsx                 โครงหลักของเว็บไซต์
+  page.tsx                   หน้าเว็บหลักเพียงหน้าเดียว
+lib/
+  sensors/
+    sensor-source.ts         ข้อตกลงของแหล่งข้อมูลเซ็นเซอร์
+    mock-sensor-source.ts    ข้อมูลจำลองระหว่างพัฒนา
+    esp32-sensor-source.ts   จุดเชื่อมต่อ ESP32 ในอนาคต
+    get-sensor-source.ts     เลือกว่าจะใช้ Mock หรือ ESP32
+types/
+  sensor.ts                  รูปแบบข้อมูลเซ็นเซอร์
+  curtain.ts                 รูปแบบสถานะม่าน
+```
+
+## วิธีรัน
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+เปิด `http://localhost:3000` สำหรับหน้าเว็บ และ `http://localhost:3000/api/sensors` สำหรับดูข้อมูลเซ็นเซอร์จำลอง
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## การเชื่อม ESP32 ในอนาคต
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+คัดลอก `.env.example` เป็น `.env.local` แล้วแก้เป็น:
 
-## Learn More
+```env
+SENSOR_SOURCE=esp32
+ESP32_BASE_URL=http://IP-ADDRESS-OF-ESP32
+```
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+ESP32 ต้องตอบข้อมูลจาก `GET /sensors` ให้ตรงกับรูปแบบใน `types/sensor.ts`

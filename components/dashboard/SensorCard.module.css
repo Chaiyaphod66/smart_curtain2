@@ -1,0 +1,32 @@
+.card {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid #dce5e7;
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 4px 16px #16324f06;
+}
+
+.label {
+    margin-bottom: 12px;
+    color: #52636a;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.value {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px;
+    color: #183e42;
+    font-size: clamp(28px, 4vw, 36px);
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+.unit {
+    color: #52636a;
+    font-size: 16px;
+    font-weight: 400;
+}

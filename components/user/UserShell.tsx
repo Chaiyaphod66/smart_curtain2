@@ -52,9 +52,9 @@ export default function UserShell({ children }: { children: ReactNode }) {
             ))}
           </nav>
 
-          <Link className={styles.devLink} href="/dev">
+          <Link className={styles.devLink} href="/dev" aria-label="หน้า Developer">
             <AppIcon name="developer" size={17} />
-            Developer
+            <span className={styles.devLinkText}>Developer</span>
           </Link>
         </div>
       </header>

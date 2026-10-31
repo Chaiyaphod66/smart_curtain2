@@ -23,9 +23,11 @@ type UseAutoRuntimeOptions = {
   cooldownSeconds: number;
   isMotorRunning: boolean;
   currentPositionPercent: number | null;
+  cooldownStorageKey?: string | null;
 };
 
-const COOLDOWN_STORAGE_KEY = "smart-curtain:auto-cooldown-until";
+const DEFAULT_COOLDOWN_STORAGE_KEY =
+  "smart-curtain:auto-cooldown-until";
 
 type AutoRuntimeAction =
   | {
@@ -85,7 +87,6 @@ function autoRuntimeReducer(
       return resetAutoRuntime(state, action.nowMs);
   }
 }
-
 export default function useAutoRuntime({
   sampleId,
   candidateKey,
@@ -94,16 +95,25 @@ export default function useAutoRuntime({
   cooldownSeconds,
   isMotorRunning,
   currentPositionPercent,
+  cooldownStorageKey,
 }: UseAutoRuntimeOptions) {
+  const storageKey =
+    cooldownStorageKey === undefined
+      ? DEFAULT_COOLDOWN_STORAGE_KEY
+      : cooldownStorageKey;
   const [state, dispatch] = useReducer(
     autoRuntimeReducer,
     INITIAL_AUTO_RUNTIME_STATE,
   );
 
   useEffect(() => {
+    if (!storageKey) {
+      return;
+    }
+
     try {
       const storedCooldown = Number(
-        window.localStorage.getItem(COOLDOWN_STORAGE_KEY),
+        window.localStorage.getItem(storageKey),
       );
 
       if (Number.isFinite(storedCooldown)) {
@@ -116,23 +126,24 @@ export default function useAutoRuntime({
     } catch {
       // Auto Runtime ยังทำงานในหน่วยความจำได้เมื่อ storage ถูกปิดกั้น
     }
-  }, []);
+  }, [storageKey]);
 
   useEffect(() => {
     if (
+      storageKey &&
       state.phase === "cooldown" &&
       state.cooldownUntilMs !== null
     ) {
       try {
         window.localStorage.setItem(
-          COOLDOWN_STORAGE_KEY,
+          storageKey,
           String(state.cooldownUntilMs),
         );
       } catch {
         // ไม่ให้ข้อจำกัดของ storage ทำให้หน้าควบคุมหยุดทำงาน
       }
     }
-  }, [state.phase, state.cooldownUntilMs]);
+  }, [storageKey, state.phase, state.cooldownUntilMs]);
 
   useEffect(() => {
     dispatch({

@@ -5,6 +5,7 @@ import useDeviceStatus from "@/hooks/useDeviceStatus";
 import useSensorData from "@/hooks/useSensorData";
 import AppIcon from "./AppIcon";
 import CurtainScene from "./CurtainScene";
+import HomeAutoCard from "./HomeAutoCard";
 import styles from "./UserPages.module.css";
 
 function formatValue(value: number | null | undefined, suffix: string) {
@@ -22,8 +23,24 @@ export default function HomeOverview() {
       : null;
   const isMoving = device.status?.motor.state === "running";
 
+  const calibration = device.status?.calibration;
+  const isCalibrated =
+    calibration?.stage === "ready" || device.status?.encoder.calibrated === true;
+  const showCalibrationBanner = device.isOnline && !isCalibrated;
+
   return (
     <div className={styles.pageStack}>
+      {showCalibrationBanner && (
+        <div className={styles.calibToast} role="alert">
+          <span aria-hidden="true">⚠️</span>
+          <span>ยังไม่ได้คาลิเบรตม่าน — ระบบจะยังสั่งตำแหน่งไม่ได้</span>
+          <Link href="/control" className={styles.calibToastLink}>
+            ตั้งค่าเลย →
+          </Link>
+        </div>
+      )}
+
+
       <section className={styles.pageIntro}>
         <div>
           <p className={styles.eyebrow}>ภาพรวมภายในบ้าน</p>
@@ -68,6 +85,8 @@ export default function HomeOverview() {
         </div>
       </section>
 
+      <HomeAutoCard device={device} />
+
       <section className={styles.sectionBlock}>
         <div className={styles.sectionHeading}>
           <div>
@@ -81,21 +100,27 @@ export default function HomeOverview() {
 
         <div className={styles.sensorGrid}>
           <article className={`${styles.sensorCard} ${styles.temperatureCard}`}>
-            <span className={styles.sensorIcon}>°</span>
+            <span className={styles.sensorIcon}>
+              <AppIcon name="temperature" size={20} />
+            </span>
             <div>
               <p>อุณหภูมิ</p>
               <strong>{formatValue(sensors.readings?.temperatureCelsius, "°C")}</strong>
             </div>
           </article>
           <article className={`${styles.sensorCard} ${styles.humidityCard}`}>
-            <span className={styles.sensorIcon}>%</span>
+            <span className={styles.sensorIcon}>
+              <AppIcon name="humidity" size={20} />
+            </span>
             <div>
               <p>ความชื้น</p>
               <strong>{formatValue(sensors.readings?.humidityPercent, "%")}</strong>
             </div>
           </article>
           <article className={`${styles.sensorCard} ${styles.lightCard}`}>
-            <span className={styles.sensorIcon}>☼</span>
+            <span className={styles.sensorIcon}>
+              <AppIcon name="light" size={20} />
+            </span>
             <div>
               <p>ความเข้มแสง</p>
               <strong>{formatValue(sensors.readings?.lightLux, " lux")}</strong>

@@ -6,18 +6,30 @@ import {
   evaluateAutoPreset,
   getAutoPresetValidationErrors,
 } from "@/lib/curtain/auto-preset";
+import { getAutoResponseTarget } from "@/lib/curtain/auto-response-style";
+import {
+  disableContinuousAuto,
+  enableContinuousAuto,
+  getAutoPresetRevision,
+  saveAutoConfiguration,
+} from "@/lib/curtain/esp32-curtain-client";
+import { AUTO_PRESET_GUIDES } from "@/lib/curtain/auto-preset-guide";
 import useAutoRuntime from "@/hooks/useAutoRuntime";
+import useAutoPresetSelection from "@/hooks/useAutoPresetSelection";
 import type {
   AutoPreset,
   AutoPresetId,
 } from "@/types/auto-preset";
 import type { AutoRuntimePhase } from "@/types/auto-runtime";
+import type { DeviceAutoStatus } from "@/types/device";
 import type { SensorReading } from "@/types/sensor";
+import ClosedLoopAutoLab from "./ClosedLoopAutoLab";
 import styles from "./AutoPresetPanel.module.css";
 
 type AutoPresetPanelProps = {
   reading: SensorReading | null;
   source: "mock" | "esp32" | null;
+  isAutoLabSelected: boolean;
   isDeviceOnline: boolean;
   currentPositionPercent: number | null;
   isPositionControlReady: boolean;
@@ -27,8 +39,10 @@ type AutoPresetPanelProps = {
   limitConflict: boolean;
   limitSafetyEnabled: boolean;
   commandError: string | null;
+  deviceAutoStatus: DeviceAutoStatus | null;
+  onDeviceStatusRefresh: () => void;
   onTestMove: (targetPercent: number) => Promise<boolean>;
-  onEmergencyStop: () => void | Promise<void>;
+  onEmergencyStop: () => void | boolean | Promise<void | boolean>;
 };
 
 const actionLabels = {
@@ -49,7 +63,25 @@ const runtimePhaseLabels: Record<AutoRuntimePhase, string> = {
   fault: "หยุดเพราะผิดปกติ",
 };
 
-const MAX_SINGLE_TEST_TRAVEL_PERCENT = 10;
+const deviceAutoPhaseLabels: Record<
+  DeviceAutoStatus["phase"],
+  string
+> = {
+  "not-configured": "ยังไม่ได้บันทึกค่า",
+  disabled: "ปิดอยู่",
+  "dry-run": "Dry run · กำลังอ่านค่า",
+  confirming: "กำลังยืนยันค่าซ้ำ",
+  "dry-run-ready": "Dry run พร้อม",
+  waiting: "กำลังรอข้อมูลใหม่",
+  holding: "คงตำแหน่งเดิม",
+  moving: "กำลังควบคุมม่าน",
+  cooldown: "กำลังพักคำสั่ง",
+  blocked: "ถูกระบบความปลอดภัยบล็อก",
+  "resolution-limited": "หยุดหลังกลับทิศถึง Step ต่ำสุด",
+  fault: "ปิดเพราะพบความผิดปกติ",
+};
+
+const MAX_SINGLE_TEST_TRAVEL_PERCENT = 15;
 
 function clonePreset(preset: AutoPreset): AutoPreset {
   return {
@@ -61,14 +93,13 @@ function clonePreset(preset: AutoPreset): AutoPreset {
     },
   };
 }
-
 function createInitialPresets(): AutoPreset[] {
   return DEFAULT_AUTO_PRESETS.map(clonePreset);
 }
-
 export default function AutoPresetPanel({
   reading,
   source,
+  isAutoLabSelected,
   isDeviceOnline,
   currentPositionPercent,
   isPositionControlReady,
@@ -78,21 +109,33 @@ export default function AutoPresetPanel({
   limitConflict,
   limitSafetyEnabled,
   commandError,
+  deviceAutoStatus,
+  onDeviceStatusRefresh,
   onTestMove,
   onEmergencyStop,
 }: AutoPresetPanelProps) {
   const [presets, setPresets] = useState(createInitialPresets);
-  const [selectedId, setSelectedId] =
-    useState<AutoPresetId>("balanced");
+  const { selectedId, selectPreset } = useAutoPresetSelection();
   const [armedDecisionKey, setArmedDecisionKey] = useState<
     string | null
   >(null);
   const [motorTestMessage, setMotorTestMessage] = useState<
     string | null
   >(null);
+  const [autoActionMessage, setAutoActionMessage] = useState<
+    string | null
+  >(null);
+  const [autoActionError, setAutoActionError] = useState<
+    string | null
+  >(null);
+  const [isAutoActionPending, setIsAutoActionPending] =
+    useState(false);
+  const [continuousAutoConfirmed, setContinuousAutoConfirmed] =
+    useState(false);
 
   const selectedPreset =
     presets.find((preset) => preset.id === selectedId) ?? presets[0];
+  const selectedGuide = AUTO_PRESET_GUIDES[selectedPreset.id];
 
   const decision = useMemo(
     () => evaluateAutoPreset(selectedPreset, reading),
@@ -102,10 +145,25 @@ export default function AutoPresetPanel({
     () => getAutoPresetValidationErrors(selectedPreset),
     [selectedPreset],
   );
-  const decisionKey = `${selectedId}:${decision.action}:${decision.targetPercent ?? "none"}`;
+  const selectedPresetRevision = getAutoPresetRevision(selectedPreset);
+  const responseTarget =
+    decision.targetPercent === null
+      ? null
+      : getAutoResponseTarget(
+          selectedPreset.responseStyle,
+          decision.targetPercent,
+          currentPositionPercent,
+          deviceAutoStatus?.gentleStepPercent ?? undefined,
+        );
+  const commandTargetPercent = responseTarget?.targetPercent ?? null;
+  const isPresetSyncedToEsp32 =
+    deviceAutoStatus?.configured === true &&
+    deviceAutoStatus.presetId === selectedPreset.id &&
+    deviceAutoStatus.configRevision === selectedPresetRevision;
+  const decisionKey = `${selectedId}:${selectedPreset.responseStyle}:${decision.action}:${commandTargetPercent ?? "none"}`;
   const safetyConfirmed = armedDecisionKey === decisionKey;
   const isActionableDecision =
-    decision.targetPercent !== null &&
+    commandTargetPercent !== null &&
     (decision.action === "open" ||
       decision.action === "close" ||
       decision.action === "adjust");
@@ -123,7 +181,7 @@ export default function AutoPresetPanel({
       validationErrors.length === 0 &&
       isActionableDecision &&
       runtimeCanObserve
-        ? decision.targetPercent
+        ? commandTargetPercent
         : null,
     confirmationReadings: selectedPreset.confirmationReadings,
     cooldownSeconds: selectedPreset.cooldownSeconds,
@@ -132,6 +190,12 @@ export default function AutoPresetPanel({
   });
   const motorTestBlockers = useMemo(() => {
     const blockers: string[] = [];
+
+    if (isAutoLabSelected) {
+      blockers.push(
+        "Model A ใช้ Auto Lab อยู่ ให้เลือก Manual ก่อนทดสอบ Logic ปัจจุบันแบบครั้งเดียว",
+      );
+    }
 
     if (source !== "esp32") {
       blockers.push("ต้องใช้ข้อมูลเซ็นเซอร์จริงจาก ESP32");
@@ -196,20 +260,16 @@ export default function AutoPresetPanel({
 
     if (
       currentPositionPercent !== null &&
-      decision.targetPercent !== null &&
-      Math.abs(
-        currentPositionPercent - decision.targetPercent,
-      ) < 1
+      commandTargetPercent !== null &&
+      Math.abs(currentPositionPercent - commandTargetPercent) < 1
     ) {
       blockers.push("ม่านอยู่ที่ตำแหน่งเป้าหมายแล้ว");
     }
 
     if (
       currentPositionPercent !== null &&
-      decision.targetPercent !== null &&
-      Math.abs(
-        currentPositionPercent - decision.targetPercent,
-      ) > MAX_SINGLE_TEST_TRAVEL_PERCENT
+      commandTargetPercent !== null &&
+      Math.abs(currentPositionPercent - commandTargetPercent) > MAX_SINGLE_TEST_TRAVEL_PERCENT
     ) {
       blockers.push(
         `โหมดทดสอบอนุญาตให้ขยับไม่เกิน ${MAX_SINGLE_TEST_TRAVEL_PERCENT}% ต่อครั้ง`,
@@ -218,6 +278,7 @@ export default function AutoPresetPanel({
 
     return blockers;
   }, [
+    isAutoLabSelected,
     source,
     isDeviceOnline,
     limitSafetyEnabled,
@@ -227,7 +288,7 @@ export default function AutoPresetPanel({
     isMotorRunning,
     isSendingCommand,
     decision.action,
-    decision.targetPercent,
+    commandTargetPercent,
     currentPositionPercent,
     isActionableDecision,
     autoRuntime.isReady,
@@ -242,13 +303,13 @@ export default function AutoPresetPanel({
     if (
       !safetyConfirmed ||
       motorTestBlockers.length > 0 ||
-      decision.targetPercent === null
+      commandTargetPercent === null
     ) {
       return;
     }
 
     const confirmed = window.confirm(
-      `ทดสอบ Auto จริง: ให้ม่านไปที่ ${decision.targetPercent}% ใช่หรือไม่?\n\nโปรดเฝ้ามอเตอร์และเตรียมกด STOP`,
+      `ทดสอบ Auto จริง: ให้ม่านไปที่ ${commandTargetPercent}% ใช่หรือไม่?\n\nโปรดเฝ้ามอเตอร์และเตรียมกด STOP`,
     );
 
     if (!confirmed) {
@@ -256,19 +317,130 @@ export default function AutoPresetPanel({
     }
 
     setMotorTestMessage(
-      `กำลังส่งคำสั่งไปที่ ${decision.targetPercent}%...`,
+      `กำลังส่งคำสั่งไปที่ ${commandTargetPercent}%...`,
     );
-    autoRuntime.startCommand(decision.targetPercent);
-    const successful = await onTestMove(decision.targetPercent);
+    autoRuntime.startCommand(commandTargetPercent);
+    const successful = await onTestMove(commandTargetPercent);
     if (!successful) {
       autoRuntime.commandFailed("ส่งคำสั่งทดสอบไปยัง ESP32 ไม่สำเร็จ");
     }
     setMotorTestMessage(
       successful
-        ? `ESP32 รับคำสั่ง ${decision.targetPercent}% แล้ว กำลังติดตามผล`
+        ? `ESP32 รับคำสั่ง ${commandTargetPercent}% แล้ว กำลังติดตามผล`
         : "ส่งคำสั่งทดสอบไม่สำเร็จ",
     );
     setArmedDecisionKey(null);
+  }
+
+  async function syncPresetToEsp32() {
+    if (
+      validationErrors.length > 0 ||
+      !isDeviceOnline ||
+      isAutoLabSelected ||
+      isAutoActionPending
+    ) {
+      return;
+    }
+
+    if (
+      deviceAutoStatus?.enabled &&
+      !window.confirm(
+        "การบันทึกค่าชุดใหม่จะปิด Auto และหยุดคำสั่ง Auto ที่กำลังทำงานอยู่ ต้องการดำเนินการต่อหรือไม่?",
+      )
+    ) {
+      return;
+    }
+
+    setIsAutoActionPending(true);
+    setAutoActionError(null);
+    setAutoActionMessage("กำลังบันทึกพรีเซ็ตลง ESP32...");
+
+    try {
+      await saveAutoConfiguration(selectedPreset);
+      setContinuousAutoConfirmed(false);
+      setAutoActionMessage(
+        "บันทึกลง ESP32 แล้ว ตอนนี้อยู่ใน Dry run และยังไม่สั่งมอเตอร์",
+      );
+      onDeviceStatusRefresh();
+    } catch (error) {
+      setAutoActionMessage(null);
+      setAutoActionError(
+        error instanceof Error
+          ? error.message
+          : "บันทึกพรีเซ็ตลง ESP32 ไม่สำเร็จ",
+      );
+    } finally {
+      setIsAutoActionPending(false);
+    }
+  }
+
+  async function turnOnContinuousAuto() {
+    if (
+      !continuousAutoConfirmed ||
+      !isPresetSyncedToEsp32 ||
+      validationErrors.length > 0 ||
+      isAutoLabSelected ||
+      isAutoActionPending
+    ) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "เปิด Auto ต่อเนื่องบน ESP32 ใช่หรือไม่?\n\nหลังเปิดแล้ว ESP32 จะอ่านเซ็นเซอร์และควบคุมม่านต่อ แม้ปิดหน้าเว็บ โปรดทดสอบลิมิตและ STOP ให้พร้อมก่อน",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setIsAutoActionPending(true);
+    setAutoActionError(null);
+    setAutoActionMessage("กำลังเปิด Auto บน ESP32...");
+
+    try {
+      await enableContinuousAuto();
+      setAutoActionMessage(
+        "เปิด Auto ต่อเนื่องแล้ว สามารถปิดหน้าเว็บได้ ESP32 จะทำงานต่อเอง",
+      );
+      onDeviceStatusRefresh();
+    } catch (error) {
+      setAutoActionMessage(null);
+      setAutoActionError(
+        error instanceof Error
+          ? error.message
+          : "เปิด Auto ต่อเนื่องไม่สำเร็จ",
+      );
+    } finally {
+      setIsAutoActionPending(false);
+    }
+  }
+
+  async function turnOffContinuousAuto() {
+    if (!isDeviceOnline || isAutoActionPending) {
+      return;
+    }
+
+    setIsAutoActionPending(true);
+    setAutoActionError(null);
+    setAutoActionMessage("กำลังปิด Auto...");
+
+    try {
+      await disableContinuousAuto();
+      setContinuousAutoConfirmed(false);
+      setAutoActionMessage(
+        "ปิด Auto แล้ว หากมีคำสั่ง Auto กำลังทำงาน ESP32 จะหยุดมอเตอร์ด้วย",
+      );
+      onDeviceStatusRefresh();
+    } catch (error) {
+      setAutoActionMessage(null);
+      setAutoActionError(
+        error instanceof Error
+          ? error.message
+          : "ปิด Auto ไม่สำเร็จ",
+      );
+    } finally {
+      setIsAutoActionPending(false);
+    }
   }
 
   async function emergencyStop() {
@@ -287,6 +459,12 @@ export default function AutoPresetPanel({
         preset.id === selectedId ? update(preset) : preset,
       ),
     );
+  }
+
+  function choosePreset(id: AutoPresetId) {
+    selectPreset(id);
+    setArmedDecisionKey(null);
+    setMotorTestMessage(null);
   }
 
   function updateTemperatureThreshold(
@@ -442,9 +620,9 @@ export default function AutoPresetPanel({
       <div className={styles.heading}>
         <div>
           <p className={styles.eyebrow}>AUTO PRESET LAB</p>
-          <h2 id="auto-preset-title">ออกแบบโหมดอัตโนมัติ</h2>
+          <h2 id="auto-preset-title">เลือกโหมดอัตโนมัติ</h2>
           <p>
-            เลือกแนวทางแล้วปรับเกณฑ์ให้ตรงกับผู้ใช้แต่ละคน
+            ใช้ค่าที่แนะนำได้ทันที หรือเปิดการตั้งค่าขั้นสูงเมื่อต้องการ
           </p>
         </div>
         <span className={styles.previewBadge}>Preview เท่านั้น</span>
@@ -461,8 +639,10 @@ export default function AutoPresetPanel({
                 : styles.presetButton
             }
             aria-pressed={preset.id === selectedId}
-            onClick={() => setSelectedId(preset.id)}
+            data-tone={AUTO_PRESET_GUIDES[preset.id].tone}
+            onClick={() => choosePreset(preset.id)}
           >
+            <small>{AUTO_PRESET_GUIDES[preset.id].badge}</small>
             <strong>{preset.name}</strong>
             <span>{preset.description}</span>
           </button>
@@ -470,7 +650,78 @@ export default function AutoPresetPanel({
       </div>
 
       <div className={styles.workspace}>
-        <div className={styles.editor}>
+        <div className={styles.setupColumn}>
+          <section className={styles.easySummary}>
+            <span>{selectedGuide.badge}</span>
+            <h3>{selectedPreset.name}</h3>
+            <p>{selectedGuide.summary}</p>
+            <div className={styles.easyHighlights}>
+              {selectedGuide.highlights.map((highlight) => (
+                <div key={highlight}>
+                  <i aria-hidden="true" />
+                  {highlight}
+                </div>
+              ))}
+            </div>
+            <strong className={styles.readyPresetNote}>
+              เลือกแล้วใช้ค่าแนะนำได้เลย ไม่ต้องกรอกตัวเลขเอง
+            </strong>
+            <div className={styles.responseStylePicker}>
+              <span>รูปแบบการขยับม่าน</span>
+              <div>
+                <button
+                  type="button"
+                  className={selectedPreset.responseStyle === "standard" ? styles.responseStyleActive : undefined}
+                  aria-pressed={selectedPreset.responseStyle === "standard"}
+                  onClick={() => updateSelectedPreset((preset) => ({ ...preset, responseStyle: "standard" }))}
+                >
+                  <strong>มาตรฐาน</strong>
+                  <small>ไปเป้าหมายในรอบเดียว</small>
+                </button>
+                <button
+                  type="button"
+                  className={selectedPreset.responseStyle === "gentle" ? styles.responseStyleActive : undefined}
+                  aria-pressed={selectedPreset.responseStyle === "gentle"}
+                  onClick={() => updateSelectedPreset((preset) => ({ ...preset, responseStyle: "gentle" }))}
+                >
+                  <strong>นุ่มนวล</strong>
+                  <small>ทีละไม่เกิน 15% แล้วประเมินใหม่</small>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {selectedPreset.id === "balanced" && (
+            <ClosedLoopAutoLab
+              reading={reading}
+              source={source}
+              currentPositionPercent={currentPositionPercent}
+              isAutoLabSelected={isAutoLabSelected}
+              isDeviceOnline={isDeviceOnline}
+              isPositionControlReady={isPositionControlReady}
+              isMotorRunning={isMotorRunning}
+              isSendingCommand={isSendingCommand}
+              motorFault={motorFault}
+              limitConflict={limitConflict}
+              limitSafetyEnabled={limitSafetyEnabled}
+              deviceAutoEnabled={deviceAutoStatus?.enabled === true}
+              deviceAutoStatus={deviceAutoStatus}
+              onDeviceStatusRefresh={onDeviceStatusRefresh}
+              onMoveToPosition={onTestMove}
+              onEmergencyStop={onEmergencyStop}
+            />
+          )}
+
+          <details className={styles.advancedSettings}>
+            <summary>
+              <span>
+                <strong>การตั้งค่าขั้นสูง</strong>
+                <small>สำหรับปรับ °C, lux, ตำแหน่ง และเวลาพัก</small>
+              </span>
+              <b>เปิดการตั้งค่า</b>
+            </summary>
+
+            <div className={styles.editor}>
           <div className={styles.editorHeading}>
             <div>
               <span>กำลังแก้ไข</span>
@@ -760,6 +1011,8 @@ export default function AutoPresetPanel({
               </label>
             </div>
           </fieldset>
+            </div>
+          </details>
         </div>
 
         <aside className={styles.preview} aria-live="polite">
@@ -785,10 +1038,14 @@ export default function AutoPresetPanel({
           <div
             className={`${styles.decision} ${styles[decision.action]}`}
           >
-            <span>ผลจากค่าปัจจุบัน</span>
+            <span>Logic ปัจจุบันที่ ESP32 ใช้</span>
             <strong>{actionLabels[decision.action]}</strong>
             {decision.targetPercent !== null && (
-              <b>เป้าหมาย {decision.targetPercent}%</b>
+              <b>
+                เป้าหมายกฎ {decision.targetPercent}%
+                {commandTargetPercent !== null && commandTargetPercent !== decision.targetPercent
+                  ? ` · รอบถัดไป ${commandTargetPercent}%` : ""}
+              </b>
             )}
           </div>
 
@@ -877,6 +1134,156 @@ export default function AutoPresetPanel({
             </small>
           </div>
 
+          <section
+            className={styles.persistentAuto}
+            data-enabled={deviceAutoStatus?.enabled ? "true" : "false"}
+            aria-labelledby="persistent-auto-title"
+          >
+            <div className={styles.persistentAutoHeading}>
+              <div>
+                <span>ESP32 · ALWAYS-ON AUTO</span>
+                <strong id="persistent-auto-title">
+                  Auto แม้ปิดหน้าเว็บ
+                </strong>
+              </div>
+              <b>
+                {deviceAutoStatus
+                  ? deviceAutoStatus.enabled
+                    ? "กำลังทำงาน"
+                    : "ยังไม่เปิด"
+                  : "รอเฟิร์มแวร์"}
+              </b>
+            </div>
+
+            <div className={styles.persistentAutoStatus}>
+              <div>
+                <span>สถานะ ESP32</span>
+                <strong>
+                  {deviceAutoStatus
+                    ? deviceAutoPhaseLabels[deviceAutoStatus.phase]
+                    : "ยังไม่พบระบบ Auto ใน /status"}
+                </strong>
+              </div>
+              <div>
+                <span>พรีเซ็ตใน ESP32</span>
+                <strong>
+                  {isPresetSyncedToEsp32
+                    ? `${selectedPreset.name} · ตรงกับหน้าเว็บ`
+                    : deviceAutoStatus?.presetId
+                      ? `${deviceAutoStatus.presetId === "model-a" ? "Model A ฉบับเต็ม" : deviceAutoStatus.presetId} · ตั้งค่าบน ESP32`
+                      : "ยังไม่มี"}
+                </strong>
+              </div>
+              <div>
+                <span>รูปแบบการขยับ</span>
+                <strong>
+                  {deviceAutoStatus?.presetId === "model-a"
+                    ? `Model A · step ${deviceAutoStatus.gentleStepPercent ?? 15}%`
+                    : deviceAutoStatus?.responseStyle === "gentle"
+                    ? `นุ่มนวล · step ${deviceAutoStatus.gentleStepPercent ?? 15}%`
+                    : deviceAutoStatus?.responseStyle === "standard" ? "มาตรฐาน" : "Firmware เดิม"}
+                </strong>
+              </div>
+              <div>
+                <span>ผลล่าสุด</span>
+                <strong>
+                  {deviceAutoStatus?.candidateTargetPercent === null ||
+                  !deviceAutoStatus
+                    ? "ยังไม่มีเป้าหมาย"
+                    : `${deviceAutoStatus.candidateTargetPercent}% · ${deviceAutoStatus.confirmationCount}/${deviceAutoStatus.confirmationRequired ?? "—"}`}
+                </strong>
+              </div>
+            </div>
+
+            {deviceAutoStatus?.reason && (
+              <p className={styles.deviceAutoReason}>
+                ESP32: {deviceAutoStatus.reason}
+              </p>
+            )}
+
+            <button
+              type="button"
+              className={styles.syncAutoButton}
+              disabled={
+                !isDeviceOnline ||
+                validationErrors.length > 0 ||
+                isAutoLabSelected ||
+                isAutoActionPending
+              }
+              onClick={syncPresetToEsp32}
+            >
+              {isAutoActionPending
+                ? "กำลังติดต่อ ESP32..."
+                : isPresetSyncedToEsp32
+                  ? "บันทึกพรีเซ็ตนี้ใหม่"
+                  : "1. บันทึกพรีเซ็ตลง ESP32"}
+            </button>
+
+            <label className={styles.continuousAutoCheck}>
+              <input
+                type="checkbox"
+                checked={continuousAutoConfirmed}
+                disabled={
+                  !isPresetSyncedToEsp32 ||
+                  deviceAutoStatus?.enabled === true ||
+                  isAutoLabSelected ||
+                  isAutoActionPending
+                }
+                onChange={(event) =>
+                  setContinuousAutoConfirmed(event.target.checked)
+                }
+              />
+              ฉันทดสอบลิมิต, Encoder, STOP และพร้อมเฝ้าดูการทำงานครั้งแรก
+            </label>
+
+            <div className={styles.persistentAutoActions}>
+              <button
+                type="button"
+                className={styles.enableAutoButton}
+                disabled={
+                  !continuousAutoConfirmed ||
+                  !isPresetSyncedToEsp32 ||
+                  deviceAutoStatus?.enabled === true ||
+                  isAutoLabSelected ||
+                  isAutoActionPending
+                }
+                onClick={turnOnContinuousAuto}
+              >
+                2. เปิด Auto ต่อเนื่อง
+              </button>
+              <button
+                type="button"
+                className={styles.disableAutoButton}
+                disabled={
+                  !isDeviceOnline ||
+                  deviceAutoStatus?.enabled !== true ||
+                  isAutoActionPending
+                }
+                onClick={turnOffContinuousAuto}
+              >
+                ปิด Auto
+              </button>
+            </div>
+
+            {(autoActionMessage || autoActionError) && (
+              <p
+                className={
+                  autoActionError
+                    ? styles.autoActionError
+                    : styles.autoActionMessage
+                }
+                role={autoActionError ? "alert" : "status"}
+              >
+                {autoActionError ?? autoActionMessage}
+              </p>
+            )}
+
+            <small>
+              เมื่อเปิดแล้ว Logic จะอยู่ใน ESP32 ไม่ได้พึ่งแท็บเว็บ
+              แต่การสั่ง Manual หรือ STOP จะปิด Auto ทันที
+            </small>
+          </section>
+
           <p className={styles.previewNote}>
             ผลด้านบนเป็น Preview ระบบจะส่งคำสั่งเฉพาะเมื่อยืนยันในส่วนทดสอบจริงด้านล่าง
           </p>
@@ -900,15 +1307,15 @@ export default function AutoPresetPanel({
             </div>
 
             {currentPositionPercent !== null &&
-              decision.targetPercent !== null && (
+              commandTargetPercent !== null && (
                 <p className={styles.motorRoute}>
-                  {currentPositionPercent.toFixed(1)}% → {decision.targetPercent}%
+                  {currentPositionPercent.toFixed(1)}% → {commandTargetPercent}%
                   {" · "}
-                  {decision.targetPercent > currentPositionPercent
+                  {commandTargetPercent > currentPositionPercent
                     ? "เปิดเพิ่ม"
                     : "ปิดเพิ่ม"}{" "}
                   {Math.abs(
-                    decision.targetPercent - currentPositionPercent,
+                    commandTargetPercent - currentPositionPercent,
                   ).toFixed(1)}%
                 </p>
               )}
@@ -921,7 +1328,7 @@ export default function AutoPresetPanel({
               </ul>
             ) : (
               <p className={styles.readyMessage}>
-                ระบบพร้อมส่งเป้าหมาย {decision.targetPercent}% ไปยัง ESP32
+                ระบบพร้อมส่งเป้าหมาย {commandTargetPercent}% ไปยัง ESP32
               </p>
             )}
 
@@ -946,15 +1353,15 @@ export default function AutoPresetPanel({
                 disabled={
                   !safetyConfirmed ||
                   motorTestBlockers.length > 0 ||
-                  decision.targetPercent === null
+                  commandTargetPercent === null
                 }
                 onClick={testDecisionWithMotor}
               >
                 {isSendingCommand
                   ? "กำลังส่ง..."
-                  : decision.targetPercent === null
+                  : commandTargetPercent === null
                     ? "ยังไม่มีเป้าหมาย"
-                    : `ทดสอบไปที่ ${decision.targetPercent}%`}
+                    : `ทดสอบไปที่ ${commandTargetPercent}%`}
               </button>
               <button
                 type="button"

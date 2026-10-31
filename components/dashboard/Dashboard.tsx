@@ -37,7 +37,7 @@ export default function Dashboard() {
         statusSampleId: deviceStatus.status?.uptimeMs ?? null,
         refreshDeviceStatus: deviceStatus.refreshStatus,
     });
-    const [mode, setMode] = useState<"manual" | "automatic">("manual");
+    const [mode, setMode] = useState<"manual" | "auto-lab">("manual");
     const { readings, source } = sensorData;
 
     const isDeviceOnline = deviceStatus.isOnline;
@@ -51,6 +51,22 @@ export default function Dashboard() {
         isDeviceOnline &&
         encoderPosition !== null &&
         positionControlSupported;
+    const motorIsRunning = deviceStatus.status?.motor.state === "running";
+    const limitConflict = deviceStatus.status?.limits.conflict ?? false;
+    const limitSafetyEnabled =
+        deviceStatus.status?.limits.safetyEnabled ?? false;
+    const encoderSummary = encoderCalibrated
+        ? encoderPosition === null
+            ? "พร้อมใช้งาน"
+            : `${Math.round(encoderPosition)}%`
+        : encoderDetected
+            ? "พบสัญญาณ"
+            : "รอตรวจสอบ";
+    const networkDetail = deviceStatus.status?.network?.ipAddress
+        ? `IP ${deviceStatus.status.network.ipAddress}`
+        : isDeviceOnline
+            ? "เชื่อมต่อผ่าน API"
+            : "ยังไม่พบอุปกรณ์";
     function changeScenario(value: string) {
         if (
             value === "random" ||
@@ -112,7 +128,10 @@ export default function Dashboard() {
                             name="curtain-mode"
                             value="manual"
                             checked={mode === "manual"}
-                            onChange={() => setMode("manual")}
+                            onChange={() => {
+                                setMode("manual");
+                                void curtainControl.stopCurtain();
+                            }}
                         />
                         Manual
                     </label>
@@ -120,86 +139,185 @@ export default function Dashboard() {
                         <input
                             type="radio"
                             name="curtain-mode"
-                            value="automatic"
-                            checked={mode === "automatic"}
-                            onChange={() => setMode("automatic")}
-                            disabled
+                            value="auto-lab"
+                            checked={mode === "auto-lab"}
+                            onChange={() => setMode("auto-lab")}
                         />
-                        Auto Preview
+                        Auto Lab
                     </label>
                 </fieldset>
             </section>
 
-            <div className={styles.consoleGrid}>
-                <div className={styles.window}>
-                    <EncoderTestPanel deviceStatus={deviceStatus} />
-                </div>
+            <section className={styles.statusRail} aria-label="ภาพรวมสถานะระบบ">
+                <article
+                    className={`${styles.statusCard} ${
+                        isDeviceOnline ? styles.statusGood : styles.statusDanger
+                    }`}
+                >
+                    <span>ESP32</span>
+                    <strong>{isDeviceOnline ? "ออนไลน์" : "ออฟไลน์"}</strong>
+                    <small>{networkDetail}</small>
+                </article>
 
-                <div className={styles.window}>
-                    <DeviceStatusPanel deviceStatus={deviceStatus} />
-                </div>
+                <article
+                    className={`${styles.statusCard} ${
+                        motorIsRunning ? styles.statusActive : styles.statusNeutral
+                    }`}
+                >
+                    <span>มอเตอร์</span>
+                    <strong>{motorIsRunning ? "กำลังเคลื่อนที่" : "หยุดนิ่ง"}</strong>
+                    <small>
+                        {deviceStatus.status?.motor.fault
+                            ? `Fault: ${deviceStatus.status.motor.fault}`
+                            : `ความเร็ว ${deviceStatus.status?.motor.speed ?? "—"}`}
+                    </small>
+                </article>
 
-                <div className={styles.window}>
-                    <SensorPanel sensorData={sensorData} />
-                </div>
+                <article
+                    className={`${styles.statusCard} ${
+                        encoderCalibrated ? styles.statusGood : styles.statusWarning
+                    }`}
+                >
+                    <span>Encoder</span>
+                    <strong>{encoderSummary}</strong>
+                    <small>{encoderCalibrated ? "คาลิเบรตแล้ว" : "ยังไม่คาลิเบรต"}</small>
+                </article>
 
-                <div className={styles.window}>
-                    <CurtainPanel
-                        control={curtainControl}
-                        isAutomatic={mode === "automatic"}
-                        isDeviceOnline={isDeviceOnline}
-                        encoderDetected={encoderDetected}
-                        encoderCalibrated={encoderCalibrated}
-                        positionControlSupported={positionControlSupported}
-                        isPositionControlReady={isPositionControlReady}
-                        motorFault={deviceStatus.status?.motor.fault ?? null}
-                        onStop={() => {
-                            setMode("manual");
-                            curtainControl.stopCurtain();
-                        }}
-                    />
-                </div>
+                <article
+                    className={`${styles.statusCard} ${
+                        limitConflict
+                            ? styles.statusDanger
+                            : limitSafetyEnabled
+                                ? styles.statusGood
+                                : styles.statusWarning
+                    }`}
+                >
+                    <span>Safety limits</span>
+                    <strong>
+                        {limitConflict
+                            ? "สัญญาณขัดแย้ง"
+                            : limitSafetyEnabled
+                                ? "พร้อมป้องกัน"
+                                : "ยังไม่เปิด"}
+                    </strong>
+                    <small>ตรวจจุดปิดสุดและเปิดสุด</small>
+                </article>
+            </section>
 
-                <div className={styles.window}>
-                    <LimitSensorPanel
-                        deviceStatus={deviceStatus}
-                        control={curtainControl}
-                    />
+            <section className={styles.workspaceSection}>
+                <div className={styles.sectionHeading}>
+                    <div>
+                        <span>01 · OPERATE</span>
+                        <h2>ควบคุมและดูสถานะอุปกรณ์</h2>
+                    </div>
+                    <p>เริ่มทดสอบจากส่วนนี้ และเตรียมปุ่ม STOP ให้พร้อมเสมอ</p>
                 </div>
+                <div className={styles.primaryGrid}>
+                    <div className={`${styles.window} ${styles.featuredWindow}`}>
+                        <CurtainPanel
+                            control={curtainControl}
+                            isAutomatic={mode === "auto-lab"}
+                            isDeviceOnline={isDeviceOnline}
+                            encoderDetected={encoderDetected}
+                            encoderCalibrated={encoderCalibrated}
+                            positionControlSupported={positionControlSupported}
+                            isPositionControlReady={isPositionControlReady}
+                            onStop={() => {
+                                setMode("manual");
+                                curtainControl.stopCurtain();
+                            }}
+                        />
+                    </div>
+                    <div className={styles.window}>
+                        <DeviceStatusPanel deviceStatus={deviceStatus} />
+                    </div>
+                </div>
+            </section>
 
-                <div className={styles.window}>
+            <section className={styles.workspaceSection}>
+                <div className={styles.sectionHeading}>
+                    <div>
+                        <span>02 · AUTOMATION</span>
+                        <h2>Auto Preset Lab</h2>
+                    </div>
+                    <p>จำลองเงื่อนไข ตรวจผลตัดสินใจ และทดสอบการทำงานต่อเนื่อง</p>
+                </div>
+                <div className={`${styles.window} ${styles.autoWindow}`}>
                     <AutoPresetPanel
                         reading={readings}
                         source={source}
+                        isAutoLabSelected={mode === "auto-lab"}
                         isDeviceOnline={isDeviceOnline}
                         currentPositionPercent={encoderPosition}
                         isPositionControlReady={isPositionControlReady}
                         isMotorRunning={curtainControl.isMoving}
                         isSendingCommand={curtainControl.isSendingCommand}
                         motorFault={deviceStatus.status?.motor.fault ?? null}
-                        limitConflict={
-                            deviceStatus.status?.limits.conflict ?? false
-                        }
-                        limitSafetyEnabled={
-                            deviceStatus.status?.limits.safetyEnabled ?? false
-                        }
+                        limitConflict={limitConflict}
+                        limitSafetyEnabled={limitSafetyEnabled}
                         commandError={curtainControl.commandError}
+                        deviceAutoStatus={deviceStatus.status?.auto ?? null}
+                        onDeviceStatusRefresh={deviceStatus.refreshStatus}
                         onTestMove={curtainControl.moveCurtainToPosition}
                         onEmergencyStop={curtainControl.stopCurtain}
                     />
                 </div>
+            </section>
 
-                <div className={styles.window}>
-                    <CalibrationPanel deviceStatus={deviceStatus} />
+            <section className={styles.workspaceSection}>
+                <div className={styles.sectionHeading}>
+                    <div>
+                        <span>03 · SENSE & PROTECT</span>
+                        <h2>เซ็นเซอร์และระบบหยุดปลายทาง</h2>
+                    </div>
+                    <p>เปรียบเทียบข้อมูลสภาพแวดล้อมกับสถานะลิมิตก่อนเดินมอเตอร์</p>
                 </div>
+                <div className={styles.splitGrid}>
+                    <div className={styles.window}>
+                        <SensorPanel sensorData={sensorData} />
+                    </div>
+                    <div className={`${styles.window} ${styles.safetyWindow}`}>
+                        <LimitSensorPanel
+                            deviceStatus={deviceStatus}
+                            control={curtainControl}
+                        />
+                    </div>
+                </div>
+            </section>
 
+            <section className={styles.workspaceSection}>
+                <div className={styles.sectionHeading}>
+                    <div>
+                        <span>04 · POSITION</span>
+                        <h2>Encoder และ Calibration</h2>
+                    </div>
+                    <p>ตรวจ pulse แล้วกำหนดระยะเดินจริงให้เปอร์เซ็นต์ตรงกับม่าน</p>
+                </div>
+                <div className={styles.splitGrid}>
+                    <div className={styles.window}>
+                        <EncoderTestPanel deviceStatus={deviceStatus} />
+                    </div>
+                    <div className={styles.window}>
+                        <CalibrationPanel deviceStatus={deviceStatus} />
+                    </div>
+                </div>
+            </section>
+
+            <section className={styles.workspaceSection}>
+                <div className={styles.sectionHeading}>
+                    <div>
+                        <span>05 · REVIEW</span>
+                        <h2>ประวัติการเคลื่อนไหว</h2>
+                    </div>
+                    <p>ใช้ผลการเคลื่อนที่จริงวิเคราะห์ความคลาดเคลื่อนและการหยุดนิ่ง</p>
+                </div>
                 <div className={styles.window}>
                     <CurtainActionHistoryPanel
                         history={curtainControl.actionHistory}
                         onClear={curtainControl.clearActionHistory}
                     />
                 </div>
-            </div>
+            </section>
         </div>
     );
 }

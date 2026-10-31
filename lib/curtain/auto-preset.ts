@@ -12,8 +12,8 @@ const MAX_LIGHT_RANGES = 5;
 export const DEFAULT_AUTO_PRESETS: readonly AutoPreset[] = [
   {
     id: "heat-protection",
-    name: "กันความร้อน",
-    description: "ให้อุณหภูมิเป็นตัวตัดสินหลัก",
+    name: "ตามอุณหภูมิ",
+    description: "ปิดเมื่อห้องร้อน และเปิดกลับเมื่ออากาศเย็นลง",
     temperature: {
       enabled: true,
       closeAtOrAboveCelsius: 30,
@@ -32,11 +32,12 @@ export const DEFAULT_AUTO_PRESETS: readonly AutoPreset[] = [
     closedTargetPercent: 10,
     confirmationReadings: 3,
     cooldownSeconds: 120,
+    responseStyle: "standard",
   },
   {
     id: "natural-light",
-    name: "รับแสงธรรมชาติ",
-    description: "ปรับตำแหน่งม่านตามหลายช่วงแสง",
+    name: "ตามแสงธรรมชาติ",
+    description: "รับแสงเมื่อแสงน้อย และลดม่านเมื่อแสงจ้า",
     temperature: {
       enabled: false,
       closeAtOrAboveCelsius: 30,
@@ -55,11 +56,12 @@ export const DEFAULT_AUTO_PRESETS: readonly AutoPreset[] = [
     closedTargetPercent: 20,
     confirmationReadings: 3,
     cooldownSeconds: 120,
+    responseStyle: "standard",
   },
   {
     id: "balanced",
-    name: "สมดุล",
-    description: "ใช้อุณหภูมิคุมความร้อนและแบ่งหลายช่วงแสง",
+    name: "สมดุลอัตโนมัติ",
+    description: "ดูทั้งความร้อนและแสง เหมาะสำหรับเริ่มต้น",
     temperature: {
       enabled: true,
       closeAtOrAboveCelsius: 30,
@@ -78,11 +80,12 @@ export const DEFAULT_AUTO_PRESETS: readonly AutoPreset[] = [
     closedTargetPercent: 15,
     confirmationReadings: 3,
     cooldownSeconds: 120,
+    responseStyle: "standard",
   },
   {
     id: "custom",
-    name: "กำหนดเอง",
-    description: "เลือกเซ็นเซอร์ ช่วงแสง และตำแหน่งเอง",
+    name: "กำหนดเอง (ขั้นสูง)",
+    description: "ปรับเซ็นเซอร์ ช่วงแสง และตำแหน่งอย่างละเอียด",
     temperature: {
       enabled: true,
       closeAtOrAboveCelsius: 31,
@@ -101,6 +104,7 @@ export const DEFAULT_AUTO_PRESETS: readonly AutoPreset[] = [
     closedTargetPercent: 25,
     confirmationReadings: 3,
     cooldownSeconds: 120,
+    responseStyle: "standard",
   },
 ];
 

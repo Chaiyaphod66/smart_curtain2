@@ -19,12 +19,6 @@ type CurtainPanelProps = {
     encoderCalibrated: boolean;
     positionControlSupported: boolean;
     isPositionControlReady: boolean;
-    motorFault:
-        | "encoder-no-pulse"
-        | "position-timeout"
-        | "closed-limit-timeout"
-        | "open-limit-timeout"
-        | null;
     onStop: () => void;
 };
 
@@ -36,7 +30,6 @@ export default function CurtainPanel({
     encoderCalibrated,
     positionControlSupported,
     isPositionControlReady,
-    motorFault,
     onStop,
 }: CurtainPanelProps) {
     const {
@@ -113,18 +106,6 @@ export default function CurtainPanel({
             {commandError && (
                 <p role="alert">
                     {commandError}
-                </p>
-            )}
-
-            {motorFault && (
-                <p className={styles.motorFault} role="alert">
-                    {motorFault === "encoder-no-pulse"
-                        ? "มอเตอร์หยุดอัตโนมัติ: ไม่พบ Pulse จาก Encoder"
-                        : motorFault === "closed-limit-timeout"
-                            ? "มอเตอร์หยุดอัตโนมัติ: ไม่พบสวิตช์ปิดสุดภายใน 10 วินาที"
-                            : motorFault === "open-limit-timeout"
-                                ? "มอเตอร์หยุดอัตโนมัติ: ไม่พบสวิตช์เปิดสุดภายใน 10 วินาที"
-                            : "มอเตอร์หยุดอัตโนมัติ: ใช้เวลาเคลื่อนที่เกินกำหนด"}
                 </p>
             )}
 

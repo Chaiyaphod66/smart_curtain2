@@ -4,6 +4,8 @@ export type AutoPresetId =
   | "balanced"
   | "custom";
 
+export type AutoResponseStyle = "standard" | "gentle";
+
 export type TemperatureAutoRule = {
   enabled: boolean;
   closeAtOrAboveCelsius: number;
@@ -31,6 +33,7 @@ export type AutoPreset = {
   closedTargetPercent: number;
   confirmationReadings: number;
   cooldownSeconds: number;
+  responseStyle: AutoResponseStyle;
 };
 
 export type AutoDecisionAction =

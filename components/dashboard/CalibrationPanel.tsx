@@ -1,12 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import type useDeviceStatus from "@/hooks/useDeviceStatus";
-import {
-  sendCloseUntilLimitCommand,
-  sendCalibrationCommand,
-  type CalibrationCommand,
-} from "@/lib/curtain/esp32-curtain-client";
+import useCurtainCalibration from "@/hooks/useCurtainCalibration";
 import styles from "./CalibrationPanel.module.css";
 
 type CalibrationPanelProps = {
@@ -22,102 +17,11 @@ const stageLabels = {
 export default function CalibrationPanel({
   deviceStatus,
 }: CalibrationPanelProps) {
-  const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
+  const setup = useCurtainCalibration(deviceStatus);
   const encoder = deviceStatus.status?.encoder;
-  const calibration = deviceStatus.status?.calibration;
-  const isMotorStopped =
-    deviceStatus.status?.motor.state === "stopped";
+  const { calibration, limits, isMotorStopped, message, error,
+    canWrite, canHome, canFindOpen, canSetOpen, canReset } = setup;
   const firmwareReady = calibration !== undefined;
-  const limits = deviceStatus.status?.limits;
-  const canWrite =
-    deviceStatus.isOnline &&
-    firmwareReady &&
-    isMotorStopped &&
-    !isSaving;
-  const canHome =
-    canWrite &&
-    limits?.closedStopEnabled === true &&
-    !limits.conflict;
-
-  async function homeToClosedLimit() {
-    if (!canHome) {
-      return;
-    }
-
-    const confirmed = window.confirm(
-      "ม่านจะเคลื่อนไปทางปิดจน FC-33 ปิดสุดตรวจพบ ต้องการเริ่ม Homing หรือไม่?",
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
-    setIsSaving(true);
-    setMessage(null);
-    setError(null);
-
-    try {
-      await sendCloseUntilLimitCommand();
-      setMessage(
-        "กำลังหา FC-33 ปิดสุด เมื่อพบแล้ว Encoder จะถูกตั้งเป็น 0% อัตโนมัติ",
-      );
-      deviceStatus.refreshStatus();
-    } catch (commandError) {
-      setError(
-        commandError instanceof Error
-          ? commandError.message
-          : "เริ่ม Homing ไม่สำเร็จ",
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
-  async function runCalibrationCommand(
-    command: CalibrationCommand,
-  ) {
-    if (!canWrite) {
-      return;
-    }
-
-    if (command === "reset") {
-      const confirmed = window.confirm(
-        "ล้างจุดปิดและจุดเปิดที่ตั้งไว้หรือไม่?",
-      );
-
-      if (!confirmed) {
-        return;
-      }
-    }
-
-    setIsSaving(true);
-    setMessage(null);
-    setError(null);
-
-    try {
-      await sendCalibrationCommand(command);
-
-      setMessage(
-        command === "closed"
-          ? "ตั้งตำแหน่งปัจจุบันเป็นจุดปิด 0% แล้ว"
-          : command === "open"
-            ? "ตั้งตำแหน่งปัจจุบันเป็นจุดเปิด 100% แล้ว"
-            : "ล้างค่าคาลิเบรตแล้ว",
-      );
-      deviceStatus.refreshStatus();
-    } catch (commandError) {
-      setError(
-        commandError instanceof Error
-          ? commandError.message
-          : "บันทึกค่าคาลิเบรตไม่สำเร็จ",
-      );
-    } finally {
-      setIsSaving(false);
-    }
-  }
 
   let statusLabel = "กำลังตรวจสอบ...";
   let statusClassName = styles.statusIdle;
@@ -218,7 +122,7 @@ export default function CalibrationPanel({
         <button
           type="button"
           className={styles.primaryButton}
-          onClick={homeToClosedLimit}
+          onClick={() => void setup.run("home")}
           disabled={!canHome}
         >
           Homing — หาและรีเซ็ตจุดปิด 0%
@@ -226,7 +130,7 @@ export default function CalibrationPanel({
         <button
           type="button"
           className={styles.primaryButton}
-          onClick={() => runCalibrationCommand("closed")}
+          onClick={() => void setup.run("closed")}
           disabled={!canWrite}
         >
           ตั้งตำแหน่งนี้เป็นจุดปิด 0%
@@ -234,20 +138,24 @@ export default function CalibrationPanel({
         <button
           type="button"
           className={styles.primaryButton}
-          onClick={() => runCalibrationCommand("open")}
-          disabled={!canWrite || !calibration?.closedSet}
+          onClick={() => void setup.run("find-open")}
+          disabled={!canFindOpen}
+        >
+          เปิดจนเจอสวิตช์ — บันทึก 100% อัตโนมัติ
+        </button>
+        <button
+          type="button"
+          className={styles.primaryButton}
+          onClick={() => void setup.run("open")}
+          disabled={!canSetOpen}
         >
           ตั้งตำแหน่งนี้เป็นจุดเปิด 100%
         </button>
         <button
           type="button"
           className={styles.resetButton}
-          onClick={() => runCalibrationCommand("reset")}
-          disabled={
-            !canWrite ||
-            (calibration?.stage === "not-started" &&
-              !calibration?.persistentStored)
-          }
+          onClick={() => void setup.run("reset")}
+          disabled={!canReset}
         >
           ล้างค่าคาลิเบรต
         </button>

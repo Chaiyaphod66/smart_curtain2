@@ -153,3 +153,43 @@
 }
 
 @media (max-width: 390px) { .brand small { display: none; } }
+
+.brand strong { font-size: 16px; }
+.brand small { font-size: 12px; line-height: 1.4; }
+.desktopNav a { min-height: 42px; display: inline-flex; align-items: center; font-size: 14px; }
+.devLink { min-height: 42px; font-size: 13px; }
+
+@media (max-width: 760px) {
+  .header { padding: 10px 14px; }
+  .headerInner { gap: 12px; }
+  .brand { min-width: 0; gap: 9px; }
+  .brandMark { width: 42px; height: 42px; flex: 0 0 auto; }
+  .brand > span:last-child { min-width: 0; }
+  .brand strong,
+  .brand small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .devLink { width: 44px; height: 44px; flex: 0 0 auto; }
+  .devLinkText { display: none; }
+  .main {
+    width: min(100% - 24px, 680px);
+    padding: 24px 0 calc(130px + env(safe-area-inset-bottom, 0px));
+  }
+  .mobileNav {
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    left: 10px;
+    padding: 7px;
+  }
+  .mobileNav a {
+    min-height: 56px;
+    justify-content: center;
+    gap: 4px;
+    font-size: 12px;
+    line-height: 1.25;
+  }
+}
+
+@media (max-width: 360px) {
+  .brand strong { font-size: 14px; }
+  .main { width: min(100% - 18px, 680px); }
+  .mobileNav a { font-size: 11px; }
+}

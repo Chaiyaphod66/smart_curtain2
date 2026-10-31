@@ -23,6 +23,7 @@ export default function LimitSensorPanel({
     useState<TestBaseline | null>(null);
 
   const limits = deviceStatus.status?.limits;
+  const diagnostic = deviceStatus.status?.limitStopDiagnostic;
   const motorFault = deviceStatus.status?.motor.fault ?? null;
   const lastStopReason =
     deviceStatus.status?.motor.lastStopReason ?? null;
@@ -250,6 +251,45 @@ export default function LimitSensorPanel({
             </article>
           </div>
 
+          <div className={styles.motorTest}>
+            <h3>ผลการหยุดที่ลิมิตครั้งล่าสุด</h3>
+            {!diagnostic ? (
+              <p>
+                {diagnostic === undefined
+                  ? "ต้องอัปโหลด Firmware 0.11.2 ก่อนจึงจะวัดเวลาหยุดได้"
+                  : "ยังไม่มีข้อมูลการหยุดที่ลิมิตในรอบเปิดเครื่องนี้"}
+              </p>
+            ) : (
+              <>
+                {!deviceStatus.isOnline && (
+                  <p>ESP32 ออฟไลน์ — ผลนี้เป็นข้อมูลครั้งล่าสุด</p>
+                )}
+                <p>
+                  ฝั่ง{diagnostic.side === "closed" ? "ปิด" : "เปิด"} ·
+                  สัญญาณถึงเริ่มเบรก: {diagnostic.edgeToBrakeUs === null
+                    ? "วัดไม่ได้"
+                    : `${(diagnostic.edgeToBrakeUs / 1000).toFixed(1)} ms`}
+                </p>
+                <p>
+                  Encoder A หลังเซ็นเซอร์ตรวจพบจนเริ่มเบรก: {diagnostic.edgeToBrakeEncoderAEdges ?? "—"} edge ·
+                  ระหว่างเบรก: {diagnostic.brakeEncoderAEdges} edge ·
+                  หลังเบรก: {diagnostic.afterBrakeEncoderAEdges ?? "รอให้นิ่ง"} edge
+                </p>
+                <p>
+                  ช่องว่างรอบตรวจสูงสุด: {(diagnostic.maxSafetyPollGapUs / 1000).toFixed(1)} ms ·
+                  งานเว็บนานสุด: {(diagnostic.maxWebHandlerUs / 1000).toFixed(1)} ms
+                </p>
+                {diagnostic.interrupted && (
+                  <p>มีคำสั่งใหม่ก่อนวัดช่วงหลังเบรกครบ</p>
+                )}
+                <small>
+                  ค่านี้วัดใน ESP32 โดยตรง ไม่ขึ้นกับเวลารีเฟรชหน้าเว็บ;
+                  หายเมื่อบอร์ดรีสตาร์ต และ Encoder A edge ไม่ใช่เปอร์เซ็นต์ตำแหน่ง
+                </small>
+              </>
+            )}
+          </div>
+
           <ol className={styles.steps}>
             <li>กดเริ่มทดสอบเพื่อจำค่าปัจจุบัน</li>
             <li>กดขยับปิดทีละครั้งจน FC-33 ปิดสุดตรวจพบ</li>
@@ -287,7 +327,8 @@ export default function LimitSensorPanel({
               <div>
                 <h3>ควบคุมระหว่างทดสอบ</h3>
                 <p>
-                  แต่ละครั้งหมุนประมาณ 0.7 วินาทีด้วย PWM 40/255
+                  คำสั่งขยับสั้น {deviceStatus.status?.motor.timeoutMs ?? 250} ms ·
+                  PWM {deviceStatus.status?.motor.speed ?? "—"}/255
                 </p>
               </div>
               <span>

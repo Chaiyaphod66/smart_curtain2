@@ -317,7 +317,7 @@ export default function useCurtainControl({
   async function stopCurtain() {
     setTargetPercent(positionPercent);
     setHasSelectedEncoderTarget(false);
-    await runMotorCommand("stop");
+    return runMotorCommand("stop");
   }
 
   return {

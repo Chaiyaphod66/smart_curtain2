@@ -57,6 +57,12 @@ export default function DeviceStatusPanel({
 
       {error && <p className={styles.error}>{error}</p>}
 
+      {status && !isOnline && (
+        <p className={styles.error}>
+          ข้อมูลอุปกรณ์ด้านล่างเป็นค่าครั้งล่าสุด ไม่ใช่สถานะปัจจุบัน
+        </p>
+      )}
+
       {status && (
         <dl className={styles.grid}>
           <div>

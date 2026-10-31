@@ -62,15 +62,6 @@
     cursor: pointer;
 }
 
-.motorFault {
-    margin: 0;
-    padding: 12px 14px;
-    border: 1px solid #fecaca;
-    border-radius: 12px;
-    background: #fef2f2;
-    color: #991b1b;
-}
-
 .positionSummary {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);

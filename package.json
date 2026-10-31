@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test lib/curtain/get-auto-target.test.mjs lib/curtain/auto-preview.test.mjs lib/curtain/auto-preset.test.mjs lib/curtain/auto-runtime.test.mjs lib/curtain/encoder-diagnostics.test.mjs"
+    "test": "node --test lib/curtain/get-auto-target.test.mjs lib/curtain/auto-preview.test.mjs lib/curtain/auto-preset.test.mjs lib/curtain/auto-response-style.test.mjs lib/curtain/closed-loop-auto.test.mjs lib/curtain/model-a-continuous.test.mjs lib/curtain/user-auto-presets.test.mjs lib/curtain/auto-user-helper.test.mjs lib/curtain/auto-runtime.test.mjs lib/curtain/encoder-diagnostics.test.mjs lib/curtain/voice-command.test.mjs"
   },
   "dependencies": {
     "next": "16.3.2",

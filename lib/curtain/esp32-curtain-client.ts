@@ -1,3 +1,6 @@
+import type { AutoPreset } from "@/types/auto-preset";
+import type { DeviceAutoStatus } from "@/types/device";
+
 export type MotorCommand = "open" | "close" | "stop";
 export type CalibrationCommand = "closed" | "open" | "reset";
 
@@ -24,16 +27,189 @@ export type PositionCommandResponse = {
 export type CloseUntilLimitResponse = {
   ok: boolean;
   command: "close-until-limit";
+  message?: string;
 };
 
 export type OpenUntilLimitResponse = {
   ok: boolean;
   command: "open-until-limit";
+  message?: string;
+};
+
+export type AutoCommandResponse = {
+  ok: boolean;
+  message: string;
+  auto: DeviceAutoStatus;
 };
 
 const ESP32_BASE_URL =
   process.env.NEXT_PUBLIC_ESP32_BASE_URL ??
   "http://192.168.4.1";
+
+export function getAutoPresetRevision(preset: AutoPreset): number {
+  const canonical = JSON.stringify({
+    id: preset.id,
+    temperature: preset.temperature,
+    light: preset.light,
+    openTargetPercent: preset.openTargetPercent,
+    closedTargetPercent: preset.closedTargetPercent,
+    confirmationReadings: preset.confirmationReadings,
+    cooldownSeconds: preset.cooldownSeconds,
+    responseStyle: preset.responseStyle,
+  });
+  let hash = 2166136261;
+
+  for (let index = 0; index < canonical.length; index += 1) {
+    hash ^= canonical.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0) & 0x7fffffff;
+}
+
+function translateAutoError(message: string): string {
+  const messages: Record<string, string> = {
+    "Calibration required":
+      "ต้องคาลิเบรต Encoder และตั้งตำแหน่ง 0–100% ก่อนเปิด Auto",
+    "Limit sensor conflict":
+      "ลิมิตเปิดสุดและปิดสุดทำงานพร้อมกัน กรุณาตรวจสายก่อน",
+    "Required sensor data is unavailable":
+      "เซ็นเซอร์ที่พรีเซ็ตต้องใช้ยังไม่มีข้อมูล",
+    "Motor is currently running":
+      "รอให้มอเตอร์หยุดก่อนเปิด Auto",
+    "Clear motor fault before enabling Auto":
+      "พบ Motor fault กรุณาแก้สาเหตุและทดสอบ Manual ก่อน",
+    "Limit safety is disabled":
+      "ระบบหยุดด้วยลิมิตยังไม่พร้อม จึงเปิด Auto ไม่ได้",
+  };
+
+  return messages[message] ?? message;
+}
+
+function translateMotorStartError(message: string): string {
+  const messages: Record<string, string> = {
+    "departure-direction-unverified":
+      "ยังไม่ทราบทิศทาง Encoder ขณะออกจากลิมิต กรุณาอัปเดตเฟิร์มแวร์แล้วเริ่ม Homing ใหม่",
+    "departure-wrong-direction":
+      "Encoder เปลี่ยนค่าไปผิดทิศทางขณะออกจากลิมิต กรุณาตรวจสายมอเตอร์และ Encoder",
+    "departure-limit-stuck":
+      "ลิมิตต้นทางยังไม่คลายภายในระยะหรือเวลาที่กำหนด กรุณาตรวจตำแหน่งเซ็นเซอร์",
+    "departure-encoder-unverified":
+      "ระบบยืนยันการเคลื่อนที่ออกจากลิมิตไม่ได้ กรุณาตรวจ Encoder",
+    "unexpected-source-limit":
+      "ลิมิตต้นทางกลับมาทำงานระหว่างม่านเคลื่อน กรุณาตรวจเซ็นเซอร์",
+    "limit-conflict":
+      "ลิมิตเปิดสุดและปิดสุดทำงานพร้อมกัน กรุณาตรวจเซ็นเซอร์และสายสัญญาณ",
+    "open-limit-active":
+      "ม่านอยู่ที่ลิมิตเปิดสุดแล้ว จึงไม่สามารถเคลื่อนไปทางเปิดต่อได้",
+    "closed-limit-active":
+      "ม่านอยู่ที่ลิมิตปิดสุดแล้ว จึงไม่สามารถเคลื่อนไปทางปิดต่อได้",
+    "motor-did-not-start":
+      "มอเตอร์ไม่เริ่มทำงาน กรุณาตรวจสถานะอุปกรณ์แล้วลองใหม่",
+  };
+
+  return messages[message] ?? message;
+}
+
+async function sendAutoRequest(
+  path: "config" | "model-a" | "enable" | "disable",
+  searchParams?: URLSearchParams,
+): Promise<AutoCommandResponse> {
+  const suffix = searchParams ? `?${searchParams.toString()}` : "";
+
+  try {
+    const response = await fetch(
+      `${ESP32_BASE_URL}/auto/${path}${suffix}`,
+      {
+        method: "POST",
+        cache: "no-store",
+        signal: AbortSignal.timeout(5_000),
+      },
+    );
+    const result = (await response.json()) as AutoCommandResponse;
+
+    if (!response.ok || !result.ok) {
+      throw new Error(
+        translateAutoError(
+          result.message || `ESP32 ตอบกลับด้วยสถานะ ${response.status}`,
+        ),
+      );
+    }
+
+    return result;
+  } catch (error) {
+    if (
+      error instanceof DOMException &&
+      error.name === "TimeoutError"
+    ) {
+      throw new Error("ESP32 ไม่ตอบกลับภายใน 5 วินาที");
+    }
+
+    if (error instanceof TypeError) {
+      throw new Error(
+        "เชื่อมต่อ ESP32 ไม่ได้ กรุณาตรวจสอบ Wi-Fi และ IP ของบอร์ด",
+      );
+    }
+
+    throw error;
+  }
+}
+
+export async function saveAutoConfiguration(
+  preset: AutoPreset,
+): Promise<AutoCommandResponse> {
+  const params = new URLSearchParams({
+    presetId: preset.id,
+    revision: String(getAutoPresetRevision(preset)),
+    temperatureEnabled: String(preset.temperature.enabled),
+    closeAt: String(preset.temperature.closeAtOrAboveCelsius),
+    reopenAt: String(preset.temperature.reopenAtOrBelowCelsius),
+    lightEnabled: String(preset.light.enabled),
+    rangeCount: String(preset.light.ranges.length),
+    openTarget: String(preset.openTargetPercent),
+    closedTarget: String(preset.closedTargetPercent),
+    confirmation: String(preset.confirmationReadings),
+    cooldown: String(preset.cooldownSeconds),
+    responseStyle: preset.responseStyle,
+  });
+
+  preset.light.ranges.forEach((range, index) => {
+    params.set(`range${index}Min`, String(range.minLux));
+    params.set(
+      `range${index}Max`,
+      range.maxLux === null ? "null" : String(range.maxLux),
+    );
+    params.set(`range${index}Target`, String(range.targetPercent));
+  });
+
+  const result = await sendAutoRequest("config", params);
+
+  if (result.auto.responseStyle !== preset.responseStyle) {
+    throw new Error(
+      "Firmware ESP32 ยังไม่รองรับรูปแบบมาตรฐาน/นุ่มนวล กรุณาอัปโหลด Firmware รุ่นล่าสุดก่อนเปิด Auto",
+    );
+  }
+
+  return result;
+}
+
+export function enableContinuousAuto(): Promise<AutoCommandResponse> {
+  return sendAutoRequest("enable");
+}
+
+export async function configureModelAOnDevice(): Promise<AutoCommandResponse> {
+  const result = await sendAutoRequest("model-a");
+
+  if (result.auto.presetId !== "model-a" || result.auto.enabled) {
+    throw new Error("ESP32 ยังไม่รองรับ Model A แบบทำงานบนบอร์ด กรุณาอัปโหลด firmware รุ่นล่าสุด");
+  }
+
+  return result;
+}
+
+export function disableContinuousAuto(): Promise<AutoCommandResponse> {
+  return sendAutoRequest("disable");
+}
 
 export async function sendMotorCommand(
   command: MotorCommand,
@@ -92,17 +268,18 @@ export async function sendCloseUntilLimitCommand(): Promise<CloseUntilLimitRespo
         signal: AbortSignal.timeout(3_000),
       },
     );
-
-    if (!response.ok) {
-      throw new Error(
-        `ESP32 ตอบกลับด้วยสถานะ ${response.status}`,
-      );
-    }
-
     const result =
       (await response.json()) as CloseUntilLimitResponse;
 
-    if (!result.ok || result.command !== "close-until-limit") {
+    if (!response.ok || !result.ok) {
+      throw new Error(
+        translateMotorStartError(
+          result.message || `ESP32 ตอบกลับด้วยสถานะ ${response.status}`,
+        ),
+      );
+    }
+
+    if (result.command !== "close-until-limit") {
       throw new Error("ESP32 ตอบกลับไม่ตรงกับคำสั่งทดสอบลิมิต");
     }
 
@@ -135,17 +312,18 @@ export async function sendOpenUntilLimitCommand(): Promise<OpenUntilLimitRespons
         signal: AbortSignal.timeout(3_000),
       },
     );
-
-    if (!response.ok) {
-      throw new Error(
-        `ESP32 ตอบกลับด้วยสถานะ ${response.status}`,
-      );
-    }
-
     const result =
       (await response.json()) as OpenUntilLimitResponse;
 
-    if (!result.ok || result.command !== "open-until-limit") {
+    if (!response.ok || !result.ok) {
+      throw new Error(
+        translateMotorStartError(
+          result.message || `ESP32 ตอบกลับด้วยสถานะ ${response.status}`,
+        ),
+      );
+    }
+
+    if (result.command !== "open-until-limit") {
       throw new Error("ESP32 ตอบกลับไม่ตรงกับคำสั่งทดสอบลิมิต");
     }
 

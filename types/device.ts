@@ -1,3 +1,5 @@
+import type { AutoResponseStyle } from "./auto-preset";
+
 export type LimitSensorStatus = {
   active: boolean;
   rawLevel: "HIGH" | "LOW";
@@ -14,6 +16,39 @@ export type LimitSensorGroup = {
   safetyEnabled: boolean;
 };
 
+export type DeviceAutoStatus = {
+  configured: boolean;
+  enabled: boolean;
+  presetId: string | null;
+  configRevision: number | null;
+  responseStyle?: AutoResponseStyle;
+  gentleStepPercent?: number | null;
+  gentleLastDirection?: "open" | "close" | null;
+  gentleResolutionLimited?: boolean;
+  modelATemperatureBandIndex?: number | null;
+  modelAHighLux?: number | null;
+  phase:
+    | "not-configured"
+    | "disabled"
+    | "dry-run"
+    | "confirming"
+    | "dry-run-ready"
+    | "waiting"
+    | "holding"
+    | "moving"
+    | "cooldown"
+    | "blocked"
+    | "resolution-limited"
+    | "fault";
+  reason: string;
+  candidateTargetPercent: number | null;
+  confirmationCount: number;
+  confirmationRequired: number | null;
+  cooldownRemainingSeconds: number;
+  lastCommandTargetPercent: number | null;
+  commandActive: boolean;
+};
+
 export type DeviceStatus = {
   status: "ok";
   device: string;
@@ -23,6 +58,8 @@ export type DeviceStatus = {
     ready: boolean;
     ipAddress: string;
     rssi: number | null;
+    failSafeTriggered?: boolean;
+    lastDisconnectMs?: number | null;
   };
   motor: {
     state: "running" | "stopped";
@@ -33,21 +70,21 @@ export type DeviceStatus = {
     positionControlAvailable?: boolean;
     controlMode?: "idle" | "jog" | "position" | "limit-test";
     targetPercent?: number | null;
-    fault?:
-      | "encoder-no-pulse"
-      | "position-timeout"
-      | "closed-limit-timeout"
-      | "open-limit-timeout"
-      | null;
-    lastStopReason?:
-      | "manual"
-      | "closed-limit"
-      | "open-limit"
-      | "closed-limit-timeout"
-      | "open-limit-timeout"
-      | "position-target"
-      | "jog-timeout";
+    fault?: string | null;
+    lastStopReason?: string;
   };
+  limitStopDiagnostic?: {
+    side: "closed" | "open";
+    edgeCaptured: boolean;
+    edgeToBrakeUs: number | null;
+    edgeToBrakeEncoderAEdges: number | null;
+    brakeEncoderAEdges: number;
+    afterBrakeEncoderAEdges: number | null;
+    settled: boolean;
+    interrupted: boolean;
+    maxSafetyPollGapUs: number;
+    maxWebHandlerUs: number;
+  } | null;
   sensors: {
     dht22: boolean;
     bh1750: boolean;
@@ -72,6 +109,7 @@ export type DeviceStatus = {
     storedTravelPulses?: number | null;
     requiresHoming: boolean;
   };
+  auto?: DeviceAutoStatus;
   uptimeMs: number;
 };
 

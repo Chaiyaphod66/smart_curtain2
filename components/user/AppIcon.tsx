@@ -5,7 +5,14 @@ type IconName =
   | "developer"
   | "arrow"
   | "refresh"
-  | "stop";
+  | "microphone"
+  | "stop"
+  | "temperature"
+  | "humidity"
+  | "light"
+  | "check"
+  | "shield"
+  | "sparkles";
 
 type AppIconProps = {
   name: IconName;
@@ -75,6 +82,65 @@ export default function AppIcon({ name, size = 20 }: AppIconProps) {
       <svg {...commonProps}>
         <path d="M20 7v5h-5" />
         <path d="M19 12a7 7 0 1 0-2 5" />
+      </svg>
+    );
+  }
+
+  if (name === "microphone") {
+    return (
+      <svg {...commonProps}>
+        <rect x="9" y="3" width="6" height="11" rx="3" />
+        <path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" />
+      </svg>
+    );
+  }
+
+  if (name === "temperature") {
+    return (
+      <svg {...commonProps}>
+        <path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z" />
+      </svg>
+    );
+  }
+
+  if (name === "humidity") {
+    return (
+      <svg {...commonProps}>
+        <path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z" />
+      </svg>
+    );
+  }
+
+  if (name === "light") {
+    return (
+      <svg {...commonProps}>
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+      </svg>
+    );
+  }
+
+  if (name === "check") {
+    return (
+      <svg {...commonProps}>
+        <circle cx="12" cy="12" r="10" />
+        <path d="m9 12 2 2 4-4" />
+      </svg>
+    );
+  }
+
+  if (name === "shield") {
+    return (
+      <svg {...commonProps}>
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      </svg>
+    );
+  }
+
+  if (name === "sparkles") {
+    return (
+      <svg {...commonProps}>
+        <path d="m12 3 1.91 4.88L18.79 9l-4.88 1.91L12 15.79l-1.91-4.88L5.21 9l4.88-1.12zM19 16l.96 2.44L22.4 19.4l-2.44.96L19 22.8l-.96-2.44-2.44-.96 2.44-.96z" />
       </svg>
     );
   }

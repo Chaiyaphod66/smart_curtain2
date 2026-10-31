@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import useSensorData from "@/hooks/useSensorData";
 import AppIcon from "./AppIcon";
 import styles from "./UserPages.module.css";
@@ -62,7 +63,9 @@ export default function EnvironmentPage() {
       <section className={styles.readingGrid} aria-label="ค่าเซ็นเซอร์ปัจจุบัน">
         <article className={`${styles.readingCard} ${styles.temperatureCard}`}>
           <div className={styles.readingTop}>
-            <span className={styles.sensorIcon}>°</span>
+            <span className={styles.sensorIcon}>
+              <AppIcon name="temperature" size={20} />
+            </span>
             <span className={styles.readingStatus}>อุณหภูมิ</span>
           </div>
           <strong>{valueText(readings?.temperatureCelsius, "°C")}</strong>
@@ -71,7 +74,9 @@ export default function EnvironmentPage() {
 
         <article className={`${styles.readingCard} ${styles.humidityCard}`}>
           <div className={styles.readingTop}>
-            <span className={styles.sensorIcon}>%</span>
+            <span className={styles.sensorIcon}>
+              <AppIcon name="humidity" size={20} />
+            </span>
             <span className={styles.readingStatus}>ความชื้น</span>
           </div>
           <strong>{valueText(readings?.humidityPercent, "%")}</strong>
@@ -80,7 +85,9 @@ export default function EnvironmentPage() {
 
         <article className={`${styles.readingCard} ${styles.lightCard}`}>
           <div className={styles.readingTop}>
-            <span className={styles.sensorIcon}>☼</span>
+            <span className={styles.sensorIcon}>
+              <AppIcon name="light" size={20} />
+            </span>
             <span className={styles.readingStatus}>ความเข้มแสง</span>
           </div>
           <strong>{valueText(readings?.lightLux, "lux")}</strong>
@@ -103,11 +110,44 @@ export default function EnvironmentPage() {
       </section>
 
       <section className={styles.adviceCard}>
-        <p className={styles.sectionLabel}>ระบบอัตโนมัติ</p>
-        <h2>เตรียมข้อมูลไว้พร้อมแล้ว</h2>
+        <div className={styles.adviceHeading}>
+          <div>
+            <p className={styles.sectionLabel}>ระบบอัตโนมัติ (Smart Auto)</p>
+            <h2>พร้อมทำงานร่วมกับ ESP32</h2>
+          </div>
+          <Link className={styles.adviceLink} href="/control">
+            ไปตั้งค่าโหมด Auto <AppIcon name="arrow" size={16} />
+          </Link>
+        </div>
         <p>
-          ตอนนี้หน้าเว็บอ่านค่าแสงได้แล้ว ขั้นต่อไปจึงสามารถนำค่าเหล่านี้ไปสร้างกฎเปิด–ปิดม่านอัตโนมัติได้ โดยยังคงปิดการสั่งงาน Auto ไว้เพื่อความปลอดภัย
+          ข้อมูลเซ็นเซอร์ทั้งหมดจะถูกส่งไปประมวลผลบน ESP32 เพื่อปรับตำแหน่งม่านตามสภาวะแสงและความร้อนจริง
         </p>
+
+        <div className={styles.adviceFeatures}>
+          <div className={styles.adviceItem}>
+            <div className={styles.adviceItemTop}>
+              <AppIcon name="light" size={17} />
+              <span>ปรับตามแสงสว่าง</span>
+            </div>
+            <p>เซ็นเซอร์ BH1750 ตรวจวัดแสงธรรมชาติเพื่อลดแสงจ้า และเปิดรับแสงเมื่อแดดร่ม</p>
+          </div>
+
+          <div className={styles.adviceItem}>
+            <div className={styles.adviceItemTop}>
+              <AppIcon name="temperature" size={17} />
+              <span>ป้องกันความร้อน</span>
+            </div>
+            <p>เซ็นเซอร์ DHT22 ตรวจวัดอุณหภูมิห้องเพื่อปิดม่านช่วยลดความร้อนสะสม</p>
+          </div>
+
+          <div className={styles.adviceItem}>
+            <div className={styles.adviceItemTop}>
+              <AppIcon name="shield" size={17} />
+              <span>ระบบความปลอดภัย</span>
+            </div>
+            <p>มีระบบ Cooldown และยืนยันหลายค่าก่อนขยับม่าน เพื่อไม่ให้มอเตอร์ทำงานบ่อยเกินไป</p>
+          </div>
+        </div>
       </section>
     </div>
   );

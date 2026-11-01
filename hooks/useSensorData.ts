@@ -28,19 +28,31 @@ export default function useSensorData(
     const lastPreviewSampleId = useRef<string | null>(null);
 
     useEffect(() => {
-        const controller = new AbortController();
+        let disposed = false;
         let timer: ReturnType<typeof setTimeout> | undefined;
 
         async function loadSensors() {
             setIsRefreshing(true);
             try {
-                const response = await fetch(
-                    `/api/sensors?scenario=${scenario}`,
-                    {
-                        cache: "no-store",
-                        signal: controller.signal,
-                    }
+                const requestUrl = new URL(
+                    "/api/sensors",
+                    window.location.origin,
                 );
+                requestUrl.searchParams.set("scenario", scenario);
+                requestUrl.searchParams.set("_ts", Date.now().toString());
+
+                const response = await Promise.race([
+                    fetch(requestUrl, {
+                        cache: "no-store",
+                        headers: { Accept: "application/json" },
+                    }),
+                    new Promise<never>((_, reject) => {
+                        window.setTimeout(
+                            () => reject(new Error("Sensor request timed out")),
+                            8_000,
+                        );
+                    }),
+                ]);
 
                 if (!response.ok) {
                     throw new Error("โหลดข้อมูลเซ็นเซอร์ไม่สำเร็จ");
@@ -49,7 +61,7 @@ export default function useSensorData(
                 const result: SensorApiResponse =
                     await response.json();
 
-                if (!controller.signal.aborted) {
+                if (!disposed) {
                     setReadings(result.data);
                     setSource(result.source);
                     setError(null);
@@ -69,11 +81,11 @@ export default function useSensorData(
                     }
                 }
             } catch {
-                if (!controller.signal.aborted) {
+                if (!disposed) {
                     setError("อ่านข้อมูลเซ็นเซอร์ไม่ได้ กำลังลองเชื่อมต่อใหม่…");
                 }
             } finally {
-                if (!controller.signal.aborted) {
+                if (!disposed) {
                     setIsRefreshing(false);
                     timer = setTimeout(loadSensors, 5000);
                 }
@@ -84,7 +96,7 @@ export default function useSensorData(
 
 
         return () => {
-            controller.abort();
+            disposed = true;
             clearTimeout(timer);
         };
     }, [refreshVersion, scenario]);

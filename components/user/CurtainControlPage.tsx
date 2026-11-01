@@ -385,6 +385,26 @@ export default function CurtainControlPage() {
         </div>
       </section>
 
+      <section
+        className={styles.mobileControlSummary}
+        aria-label="สรุปสถานะม่าน"
+      >
+        <div>
+          <span>ตำแหน่ง</span>
+          <strong>
+            {hasKnownPosition ? `${Math.round(control.positionPercent)}%` : "—"}
+          </strong>
+        </div>
+        <div>
+          <span>โหมด</span>
+          <strong>{isAutoEnabled ? "Auto" : "Manual"}</strong>
+        </div>
+        <div>
+          <span>สถานะ</span>
+          <strong>{control.isMoving ? "กำลังวิ่ง" : "หยุดนิ่ง"}</strong>
+        </div>
+      </section>
+
       <UserCalibrationCard
         deviceStatus={device}
         manualControlsLocked={manualControlsLocked}
@@ -464,23 +484,15 @@ export default function CurtainControlPage() {
       </section>
 
       {activeTab === "manual" && (
-        <>
-          <AutoRuntimeStatusBar
-            device={device}
-            onSwitchToAutoTab={() => {
-              setActiveTab("automatic");
-              if (typeof window !== "undefined") {
-                window.location.hash = "auto";
-              }
-            }}
-          />
-
-          <VoiceCommandPanel
-            isOnline={device.isOnline}
-            isBusy={controlsBusy}
-            onExecute={handleVoiceCommand}
-          />
-        </>
+        <AutoRuntimeStatusBar
+          device={device}
+          onSwitchToAutoTab={() => {
+            setActiveTab("automatic");
+            if (typeof window !== "undefined") {
+              window.location.hash = "auto";
+            }
+          }}
+        />
       )}
 
       {activeTab === "automatic" && (
@@ -523,11 +535,21 @@ export default function CurtainControlPage() {
               {control.isMoving ? "กำลังเคลื่อนที่" : "หยุดนิ่ง"}
             </span>
           </div>
-          <CurtainScene
-            positionPercent={
-              hasKnownPosition ? control.positionPercent : null
-            }
-          />
+          <div className={styles.desktopCurtainScene}>
+            <CurtainScene
+              positionPercent={
+                hasKnownPosition ? control.positionPercent : null
+              }
+            />
+          </div>
+          <div className={styles.mobileCurtainScene}>
+            <CurtainScene
+              compact
+              positionPercent={
+                hasKnownPosition ? control.positionPercent : null
+              }
+            />
+          </div>
         </div>
 
         <div className={styles.controlCard}>
@@ -619,6 +641,14 @@ export default function CurtainControlPage() {
           )}
         </div>
       </section>
+
+      {activeTab === "manual" && (
+        <VoiceCommandPanel
+          isOnline={device.isOnline}
+          isBusy={controlsBusy}
+          onExecute={handleVoiceCommand}
+        />
+      )}
 
       <details className={styles.historyDetails}>
         <summary>ดูประวัติการเคลื่อนที่</summary>

@@ -21,7 +21,7 @@ export default function DeveloperPage() {
           <nav className={styles.headerActions} aria-label="เครื่องมือเสริม">
             <span className={styles.devStatus}>
               <i aria-hidden="true" />
-              Local development
+              Local / Cloud console
             </span>
             <Link href="/">กลับหน้าผู้ใช้</Link>
           </nav>
@@ -43,6 +43,9 @@ export default function DeveloperPage() {
             </a>
             <a href="/api/sensors" target="_blank" rel="noreferrer">
               Sensor data ↗
+            </a>
+            <a href="/api/device-logs?limit=20" target="_blank" rel="noreferrer">
+              Device logs ↗
             </a>
           </div>
         </div>

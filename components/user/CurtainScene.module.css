@@ -93,5 +93,9 @@
 @media (max-width: 600px) {
   .scene { padding: 19px 19px 15px; border-radius: 23px; }
   .window,.compact .window { height: 220px; }
+  .scene.compact { padding: 11px 12px 9px; border-radius: 15px; }
+  .compact .window { height: 118px; border-width: 6px; border-radius: 11px 11px 8px 8px; }
+  .compact .rod { height: 7px; }
+  .compact .sill { height: 9px; }
 }
 @media (prefers-reduced-motion: reduce) { .curtain { transition: none; } }

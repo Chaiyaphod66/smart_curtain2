@@ -11,6 +11,11 @@ const SETTLING_STATUS_INTERVAL_MS = 250;
 const SETTLING_DURATION_MS = 1200;
 const IDLE_STATUS_INTERVAL_MS = 1200;
 const OFFLINE_STATUS_INTERVAL_MS = 3000;
+const CLOUD_MODE = process.env.NEXT_PUBLIC_DEVICE_TRANSPORT === "mqtt";
+const CLOUD_ACTIVE_STATUS_INTERVAL_MS = 1000;
+const CLOUD_SETTLING_STATUS_INTERVAL_MS = 1000;
+const CLOUD_IDLE_STATUS_INTERVAL_MS = 2500;
+const CLOUD_OFFLINE_STATUS_INTERVAL_MS = 5000;
 
 export default function useDeviceStatus() {
   const [status, setStatus] =
@@ -30,7 +35,9 @@ export default function useDeviceStatus() {
 
     async function loadStatus() {
       setIsChecking(true);
-      let nextIntervalMs = OFFLINE_STATUS_INTERVAL_MS;
+      let nextIntervalMs = CLOUD_MODE
+        ? CLOUD_OFFLINE_STATUS_INTERVAL_MS
+        : OFFLINE_STATUS_INTERVAL_MS;
 
       try {
         const response = await fetch("/api/device-status", {
@@ -59,15 +66,23 @@ export default function useDeviceStatus() {
           if (motorRunning) {
             previousMotorRunning = true;
             settlingUntilMs = 0;
-            nextIntervalMs = ACTIVE_STATUS_INTERVAL_MS;
+            nextIntervalMs = CLOUD_MODE
+              ? CLOUD_ACTIVE_STATUS_INTERVAL_MS
+              : ACTIVE_STATUS_INTERVAL_MS;
           } else if (previousMotorRunning) {
             previousMotorRunning = false;
             settlingUntilMs = Date.now() + SETTLING_DURATION_MS;
-            nextIntervalMs = SETTLING_STATUS_INTERVAL_MS;
+            nextIntervalMs = CLOUD_MODE
+              ? CLOUD_SETTLING_STATUS_INTERVAL_MS
+              : SETTLING_STATUS_INTERVAL_MS;
           } else if (Date.now() < settlingUntilMs) {
-            nextIntervalMs = SETTLING_STATUS_INTERVAL_MS;
+            nextIntervalMs = CLOUD_MODE
+              ? CLOUD_SETTLING_STATUS_INTERVAL_MS
+              : SETTLING_STATUS_INTERVAL_MS;
           } else {
-            nextIntervalMs = IDLE_STATUS_INTERVAL_MS;
+            nextIntervalMs = CLOUD_MODE
+              ? CLOUD_IDLE_STATUS_INTERVAL_MS
+              : IDLE_STATUS_INTERVAL_MS;
           }
         }
       } catch (loadError) {

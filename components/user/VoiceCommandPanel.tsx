@@ -425,7 +425,7 @@ export default function VoiceCommandPanel({
       <div className={styles.voiceHeading}>
         <div>
           <p className={styles.sectionLabel}>คำสั่งเสียง</p>
-          <h2 id="voice-command-title">พูดเป็นประโยคธรรมชาติได้มากขึ้น</h2>
+          <h2 id="voice-command-title">สั่งงานด้วยเสียง</h2>
           <p>
             ระบบเข้าใจคำสุภาพ ตัวเลข 0–100 และเลขภาษาไทย แต่จะไม่เดาคำสั่งกำกวม
             เมื่อรู้จำสำเร็จจะส่งคำสั่งทันที โดยยังตรวจโหมด ลิมิต Encoder และ fault ก่อนทำงาน

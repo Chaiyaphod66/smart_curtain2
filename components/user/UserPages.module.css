@@ -4009,3 +4009,830 @@
     flex-direction: column;
   }
 }
+
+/* Prevent mobile cards from using their desktop intrinsic width. */
+@media (max-width: 640px) {
+  .pageStack {
+    width: 100%;
+    min-width: 0;
+    overflow-x: clip;
+  }
+
+  .pageStack > *,
+  .operatingModeCard,
+  .autoStatusCardStandby,
+  .autoStatusCardActive,
+  .autoModeSection,
+  .controlLayout,
+  .controlCard,
+  .voicePanel {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .operatingModeCard,
+  .autoStatusCardStandby,
+  .autoStatusCardActive,
+  .autoModeSection {
+    overflow: hidden;
+  }
+
+  .operatingModeHeading {
+    min-width: 0;
+    flex-direction: row;
+  }
+
+  .operatingModeHeading > div,
+  .autoModeHeading > div,
+  .autoStatusStandbyLeft,
+  .autoStatusStandbyLeft > div,
+  .autoStatusHeaderLeft,
+  .autoStatusHeaderLeft > div {
+    min-width: 0;
+  }
+
+  .operatingModeHeading h2,
+  .autoModeHeading h2,
+  .autoStatusStandbyLeft strong,
+  .autoStatusStandbyLeft p,
+  .autoActivePresetTitle {
+    overflow-wrap: anywhere;
+  }
+
+  .modeSwitch {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .modeSwitch button {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .autoStatusStandbyLeft {
+    flex: 1 1 100%;
+  }
+
+  .autoFamilyGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    max-width: 100%;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .autoFamilyOption,
+  .autoFamilyActive {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    min-height: 104px;
+  }
+}
+
+@media (max-width: 360px) {
+  .autoFamilyGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .autoFamilyOption,
+  .autoFamilyActive {
+    min-height: 0;
+  }
+}
+
+.mobileCurtainScene {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .controlLayout {
+    gap: 10px;
+  }
+
+  .controlVisualCard {
+    display: block;
+    order: 1;
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .controlCard {
+    order: 2;
+  }
+
+  .positionHeading {
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .positionHeading p {
+    font-size: 11px;
+  }
+
+  .positionHeading strong {
+    font-size: 24px;
+  }
+
+  .movingBadge,
+  .stillBadge {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .desktopCurtainScene {
+    display: none;
+  }
+
+  .mobileCurtainScene {
+    display: block;
+  }
+
+  .jogSection {
+    margin-top: 13px;
+    padding-top: 12px;
+  }
+
+  .jogSection p {
+    display: none;
+  }
+
+  .jogButtons {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .jogButtons button {
+    min-width: 0;
+    min-height: 38px;
+    padding: 6px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+
+  .stopButton {
+    min-height: 42px;
+    margin-top: 7px;
+    font-size: 12px;
+  }
+}
+
+/* Mobile user experience: keep actions first and move supporting detail out of the way. */
+.mobileControlSummary {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .pageStack {
+    gap: 12px;
+  }
+
+  .pageIntro {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .pageIntro .eyebrow,
+  .pageIntro > div > p:last-child {
+    display: none;
+  }
+
+  .pageIntro h1 {
+    margin: 0;
+    font-size: 25px;
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+  }
+
+  .connectionPill,
+  .refreshButton {
+    min-height: 34px;
+    padding: 7px 10px;
+    font-size: 11px;
+  }
+
+  .connectionPill > span {
+    width: 7px;
+    height: 7px;
+  }
+
+  .mobileControlSummary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    overflow: hidden;
+    border: 1px solid rgba(38, 65, 55, 0.09);
+    border-radius: 17px;
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 10px 28px rgba(42, 61, 51, 0.055);
+  }
+
+  .mobileControlSummary > div {
+    min-width: 0;
+    padding: 11px 8px;
+    text-align: center;
+  }
+
+  .mobileControlSummary > div + div {
+    border-left: 1px solid #e5e9e5;
+  }
+
+  .mobileControlSummary span,
+  .mobileControlSummary strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobileControlSummary span {
+    color: #7b8881;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  .mobileControlSummary strong {
+    margin-top: 3px;
+    color: #173d31;
+    font-size: 14px;
+  }
+
+  .operatingModeCard {
+    gap: 9px;
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .operatingModeHeading {
+    align-items: center;
+    gap: 10px;
+  }
+
+  .operatingModeHeading .sectionLabel {
+    display: none;
+  }
+
+  .operatingModeHeading h2 {
+    margin: 0;
+    font-size: 17px;
+  }
+
+  .modeStatusManual,
+  .modeStatusAuto {
+    padding: 5px 9px;
+    font-size: 9px;
+  }
+
+  .modeSwitch {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+    padding: 4px;
+    border-radius: 14px;
+  }
+
+  .modeSwitch button {
+    min-height: 50px;
+    gap: 1px;
+    padding: 8px 10px;
+    border-radius: 11px;
+    text-align: center;
+  }
+
+  .modeSwitch button strong {
+    font-size: 14px;
+  }
+
+  .modeSwitch button span {
+    font-size: 10px;
+    line-height: 1.3;
+  }
+
+  .modeSafetyNote,
+  .modeMessage,
+  .modeError {
+    padding: 8px 9px;
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  .controlLayout {
+    gap: 0;
+  }
+
+  .controlVisualCard {
+    display: none;
+  }
+
+  .controlCard {
+    padding: 15px 13px;
+    border-radius: 19px;
+  }
+
+  .controlHeading strong {
+    font-size: 27px;
+  }
+
+  .sliderLabel {
+    margin-top: 16px;
+  }
+
+  .presets {
+    gap: 5px;
+    margin-top: 14px;
+  }
+
+  .presets button {
+    min-height: 39px;
+    padding: 7px 2px;
+    font-size: 12px;
+  }
+
+  .helperText {
+    min-height: 0;
+    margin-top: 10px;
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  .controlCard > .primaryButton {
+    min-height: 48px;
+    margin-top: 9px;
+  }
+
+  .jogSection {
+    margin-top: 17px;
+    padding-top: 15px;
+  }
+
+  .jogSection > div:first-child {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .jogSection h2 {
+    font-size: 14px;
+  }
+
+  .jogSection p {
+    margin: 0;
+    font-size: 10px;
+  }
+
+  .jogButtons {
+    margin-top: 10px;
+  }
+
+  .jogButtons button,
+  .stopButton {
+    min-height: 44px;
+  }
+
+  .voicePanel {
+    gap: 10px;
+    padding: 13px;
+    border-radius: 19px;
+  }
+
+  .voiceHeading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .voiceHeading .sectionLabel,
+  .voiceHeading > div > p:not(:last-child) {
+    display: none;
+  }
+
+  .voiceHeading h2 {
+    margin: 0;
+    font-size: 17px;
+  }
+
+  .voiceHeading > div > p:last-child {
+    margin-top: 3px;
+    font-size: 10px;
+    line-height: 1.35;
+  }
+
+  .voiceButton,
+  .voiceListening {
+    min-height: 42px;
+    padding: 9px 12px;
+    font-size: 11px;
+  }
+
+  .voiceExamples {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .voiceExamples::-webkit-scrollbar {
+    display: none;
+  }
+
+  .voiceExamples span {
+    flex: 0 0 auto;
+    font-size: 10px;
+  }
+
+  .voiceCommandGuide,
+  .voiceCustomManager {
+    border-radius: 12px;
+  }
+
+  .voiceCommandGuide > summary,
+  .voiceCustomManager > summary {
+    min-height: 43px;
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+
+  .historyDetails {
+    border-radius: 15px;
+  }
+
+  .historyDetails > summary {
+    padding: 13px 14px;
+    font-size: 12px;
+  }
+
+  .autoModeSection {
+    padding: 13px 11px;
+    border-radius: 19px;
+  }
+
+  .autoModeHeading > div > p:last-child {
+    display: none;
+  }
+
+  .autoModeHeading h2 {
+    margin-top: 2px;
+    font-size: 18px;
+  }
+
+  .autoFamilyGrid {
+    display: flex;
+    grid-template-columns: none;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 1px 1px 5px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .autoFamilyGrid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .autoFamilyOption,
+  .autoFamilyActive {
+    min-width: 145px;
+    max-width: 155px;
+    flex: 0 0 145px;
+    scroll-snap-align: start;
+  }
+
+  .autoFamilyOption > small,
+  .autoFamilyActive > small {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .autoChoiceColumns {
+    gap: 8px;
+    margin-top: 9px;
+  }
+
+  .autoChoiceBlock,
+  .autoModelAExplanation {
+    padding: 10px 9px;
+  }
+
+  .autoResponseGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .autoQuickActionBottom {
+    margin-top: 9px;
+  }
+
+  .autoQuickActionBar {
+    min-height: 0;
+    gap: 8px;
+    padding: 11px;
+  }
+
+  .autoQuickActionInfo {
+    flex: 0 0 auto;
+  }
+
+  .autoQuickActionNameGroup strong {
+    font-size: 14px;
+  }
+
+  .autoQuickActionDesc {
+    font-size: 10px;
+  }
+
+  .autoQuickActionBtn {
+    min-height: 44px;
+    padding: 9px 14px;
+    font-size: 13px;
+  }
+
+  .autoCompactFooter {
+    margin-top: 9px;
+    font-size: 11px;
+  }
+
+  .heroCard {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 16px 14px;
+    border-radius: 21px;
+  }
+
+  .heroCopy h2 {
+    margin-top: 6px;
+    font-size: 24px;
+  }
+
+  .heroCopy > p:not(.sectionLabel) {
+    display: none;
+  }
+
+  .heroCopy .primaryLink {
+    width: 100%;
+    min-height: 44px;
+    margin-top: 13px;
+  }
+
+  .heroVisual {
+    order: -1;
+  }
+
+  .sectionBlock {
+    padding: 14px 12px;
+    border-radius: 19px;
+  }
+
+  .sectionHeading {
+    align-items: center;
+  }
+
+  .sectionHeading h2,
+  .infoCard h2 {
+    margin-top: 3px;
+    font-size: 18px;
+  }
+
+  .sensorGrid {
+    gap: 6px;
+    margin-top: 13px;
+  }
+
+  .sensorCard {
+    display: grid;
+    justify-items: center;
+    gap: 5px;
+    padding: 10px 4px;
+    text-align: center;
+  }
+
+  .sensorIcon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  .sensorCard p {
+    font-size: 9px;
+  }
+
+  .sensorCard strong {
+    margin-top: 1px;
+    font-size: 15px;
+  }
+
+  .readingGrid {
+    gap: 8px;
+    margin-top: 0;
+  }
+
+  .readingCard {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 4px 12px;
+    padding: 13px;
+    border-radius: 18px;
+  }
+
+  .readingTop {
+    justify-content: flex-start;
+  }
+
+  .readingCard > strong {
+    margin: 0;
+    font-size: 27px;
+    text-align: right;
+  }
+
+  .readingCard > p {
+    grid-column: 1 / -1;
+    margin: 2px 0 0;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  .infoCard,
+  .adviceCard {
+    gap: 12px;
+    padding: 14px;
+    border-radius: 18px;
+  }
+
+  .adviceCard > p {
+    display: none;
+  }
+
+  .adviceHeading {
+    align-items: center;
+  }
+
+  .adviceHeading h2 {
+    font-size: 18px;
+  }
+
+  .adviceLink {
+    padding: 8px 10px;
+    font-size: 11px;
+  }
+
+  .adviceFeatures {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    margin-top: 13px;
+    padding-bottom: 3px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+  }
+
+  .adviceFeatures::-webkit-scrollbar {
+    display: none;
+  }
+
+  .adviceItem {
+    min-width: 78%;
+    flex: 0 0 78%;
+    padding: 13px;
+    scroll-snap-align: start;
+  }
+
+  .adviceItem p {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 380px) {
+  .modeSwitch button span,
+  .jogSection p {
+    display: none;
+  }
+
+  .modeSwitch button {
+    min-height: 44px;
+  }
+
+  .autoFamilyOption,
+  .autoFamilyActive {
+    min-width: 132px;
+    max-width: 142px;
+    flex-basis: 132px;
+  }
+}
+
+@media (max-width: 640px) {
+  .autoFamilyGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    width: 100%;
+    max-width: 100%;
+    overflow: visible;
+    padding: 0;
+  }
+
+  .autoFamilyOption,
+  .autoFamilyActive {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    min-height: 104px;
+    flex: initial;
+  }
+}
+
+@media (max-width: 360px) {
+  .autoFamilyGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .autoFamilyOption,
+  .autoFamilyActive {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .controlLayout {
+    gap: 10px;
+  }
+
+  .controlVisualCard {
+    display: block;
+    order: 1;
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .controlCard {
+    order: 2;
+  }
+
+  .positionHeading {
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .positionHeading p {
+    font-size: 11px;
+  }
+
+  .positionHeading strong {
+    font-size: 24px;
+  }
+
+  .movingBadge,
+  .stillBadge {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .desktopCurtainScene {
+    display: none;
+  }
+
+  .mobileCurtainScene {
+    display: block;
+  }
+
+  .jogSection {
+    margin-top: 13px;
+    padding-top: 12px;
+  }
+
+  .jogSection p {
+    display: none;
+  }
+
+  .jogButtons {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .jogButtons button {
+    min-width: 0;
+    min-height: 38px;
+    padding: 6px 8px;
+    border-radius: 10px;
+    font-size: 12px;
+  }
+
+  .stopButton {
+    min-height: 42px;
+    margin-top: 7px;
+    font-size: 12px;
+  }
+}

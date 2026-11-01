@@ -42,9 +42,22 @@ export type AutoCommandResponse = {
   auto: DeviceAutoStatus;
 };
 
-const ESP32_BASE_URL =
-  process.env.NEXT_PUBLIC_ESP32_BASE_URL ??
-  "http://192.168.4.1";
+async function postDeviceCommand<T>(
+  path: string,
+  params: Record<string, string> = {},
+  timeoutMs = 5_000,
+): Promise<{ response: Response; result: T }> {
+  const response = await fetch("/api/device-command", {
+    method: "POST",
+    cache: "no-store",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path, params }),
+    signal: AbortSignal.timeout(timeoutMs),
+  });
+  const result = (await response.json()) as T;
+
+  return { response, result };
+}
 
 export function getAutoPresetRevision(preset: AutoPreset): number {
   const canonical = JSON.stringify({
@@ -115,18 +128,12 @@ async function sendAutoRequest(
   path: "config" | "model-a" | "enable" | "disable",
   searchParams?: URLSearchParams,
 ): Promise<AutoCommandResponse> {
-  const suffix = searchParams ? `?${searchParams.toString()}` : "";
-
   try {
-    const response = await fetch(
-      `${ESP32_BASE_URL}/auto/${path}${suffix}`,
-      {
-        method: "POST",
-        cache: "no-store",
-        signal: AbortSignal.timeout(5_000),
-      },
+    const { response, result } = await postDeviceCommand<AutoCommandResponse>(
+      `/auto/${path}`,
+      searchParams ? Object.fromEntries(searchParams.entries()) : {},
+      7_000,
     );
-    const result = (await response.json()) as AutoCommandResponse;
 
     if (!response.ok || !result.ok) {
       throw new Error(
@@ -215,13 +222,10 @@ export async function sendMotorCommand(
   command: MotorCommand,
 ): Promise<MotorCommandResponse> {
   try {
-    const response = await fetch(
-      `${ESP32_BASE_URL}/motor/${command}`,
-      {
-        method: "POST",
-        cache: "no-store",
-        signal: AbortSignal.timeout(3_000),
-      },
+    const { response, result } = await postDeviceCommand<MotorCommandResponse>(
+      `/motor/${command}`,
+      {},
+      7_000,
     );
 
     if (!response.ok) {
@@ -229,9 +233,6 @@ export async function sendMotorCommand(
         `ESP32 ตอบกลับด้วยสถานะ ${response.status}`,
       );
     }
-
-    const result =
-      (await response.json()) as MotorCommandResponse;
 
     if (!result.ok || result.command !== command) {
       throw new Error("ESP32 ตอบกลับไม่ตรงกับคำสั่ง");
@@ -260,16 +261,11 @@ export async function sendMotorCommand(
 
 export async function sendCloseUntilLimitCommand(): Promise<CloseUntilLimitResponse> {
   try {
-    const response = await fetch(
-      `${ESP32_BASE_URL}/motor/close-until-limit`,
-      {
-        method: "POST",
-        cache: "no-store",
-        signal: AbortSignal.timeout(3_000),
-      },
+    const { response, result } = await postDeviceCommand<CloseUntilLimitResponse>(
+      "/motor/close-until-limit",
+      {},
+      7_000,
     );
-    const result =
-      (await response.json()) as CloseUntilLimitResponse;
 
     if (!response.ok || !result.ok) {
       throw new Error(
@@ -304,16 +300,11 @@ export async function sendCloseUntilLimitCommand(): Promise<CloseUntilLimitRespo
 
 export async function sendOpenUntilLimitCommand(): Promise<OpenUntilLimitResponse> {
   try {
-    const response = await fetch(
-      `${ESP32_BASE_URL}/motor/open-until-limit`,
-      {
-        method: "POST",
-        cache: "no-store",
-        signal: AbortSignal.timeout(3_000),
-      },
+    const { response, result } = await postDeviceCommand<OpenUntilLimitResponse>(
+      "/motor/open-until-limit",
+      {},
+      7_000,
     );
-    const result =
-      (await response.json()) as OpenUntilLimitResponse;
 
     if (!response.ok || !result.ok) {
       throw new Error(
@@ -350,17 +341,11 @@ export async function sendCalibrationCommand(
   command: CalibrationCommand,
 ): Promise<CalibrationCommandResponse> {
   try {
-    const response = await fetch(
-      `${ESP32_BASE_URL}/calibration/${command}`,
-      {
-        method: "POST",
-        cache: "no-store",
-        signal: AbortSignal.timeout(3_000),
-      },
+    const { response, result } = await postDeviceCommand<CalibrationCommandResponse>(
+      `/calibration/${command}`,
+      {},
+      7_000,
     );
-
-    const result =
-      (await response.json()) as CalibrationCommandResponse;
 
     if (!response.ok || !result.ok) {
       if (result.message === "Set closed position first") {
@@ -405,17 +390,11 @@ export async function sendPositionCommand(
   );
 
   try {
-    const response = await fetch(
-      `${ESP32_BASE_URL}/motor/position?percent=${safeTarget}`,
-      {
-        method: "POST",
-        cache: "no-store",
-        signal: AbortSignal.timeout(3_000),
-      },
+    const { response, result } = await postDeviceCommand<PositionCommandResponse>(
+      "/motor/position",
+      { percent: String(safeTarget) },
+      7_000,
     );
-
-    const result =
-      (await response.json()) as PositionCommandResponse;
 
     if (!response.ok || !result.ok) {
       if (result.message === "Calibration required") {
